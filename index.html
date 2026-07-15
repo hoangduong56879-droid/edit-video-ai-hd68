@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EDIT VIDEO AI HD68 — Professional AI Video Editor</title>
+  <meta name="description" content="EDIT VIDEO AI HD68 - Trình chỉnh sửa video AI chuyên nghiệp, hỗ trợ HD/4K, AI Auto Cut, Background Remover, Subtitle Generator và nhiều tính năng hơn." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splash-screen">
+    <div class="splash-bg"></div>
+    <div class="splash-content">
+      <div class="splash-logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 60 60" fill="none">
+            <circle cx="30" cy="30" r="28" stroke="url(#logoGrad)" stroke-width="2.5"/>
+            <polygon points="24,18 24,42 44,30" fill="url(#logoGrad2)"/>
+            <circle cx="14" cy="30" r="4" fill="url(#logoGrad3)"/>
+            <defs>
+              <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#7c3aed"/>
+                <stop offset="100%" stop-color="#06b6d4"/>
+              </linearGradient>
+              <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#a78bfa"/>
+                <stop offset="100%" stop-color="#22d3ee"/>
+              </linearGradient>
+              <linearGradient id="logoGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f472b6"/>
+                <stop offset="100%" stop-color="#a78bfa"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="splash-title">
+          <span class="title-edit">EDIT</span>
+          <span class="title-video">VIDEO</span>
+          <span class="title-ai">AI</span>
+          <span class="title-hd">HD68</span>
+        </div>
+      </div>
+      <div class="splash-tagline">Professional AI-Powered Video Editor</div>
+      <div class="splash-loader">
+        <div class="loader-bar">
+          <div class="loader-fill" id="splash-loader-fill"></div>
+        </div>
+        <div class="loader-text" id="splash-loader-text">Khởi động AI Engine...</div>
+      </div>
+    </div>
+    <div class="splash-particles" id="splash-particles"></div>
+  </div>
+
+  <!-- ===== MAIN APP ===== -->
+  <div id="app" class="hidden">
+
+    <!-- TOP NAV -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="nav-logo">
+          <svg viewBox="0 0 40 40" fill="none" width="32" height="32">
+            <circle cx="20" cy="20" r="18" stroke="url(#navGrad)" stroke-width="2"/>
+            <polygon points="16,12 16,28 30,20" fill="url(#navGrad2)"/>
+            <circle cx="9" cy="20" r="3" fill="#f472b6"/>
+            <defs>
+              <linearGradient id="navGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
+              <linearGradient id="navGrad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#22d3ee"/></linearGradient>
+            </defs>
+          </svg>
+          <span class="nav-logo-text"><span class="grad-text">EDIT VIDEO</span> AI HD68</span>
+        </div>
+        <div class="nav-project-name" id="project-name-display" contenteditable="true">Dự án chưa đặt tên</div>
+      </div>
+      <div class="nav-center">
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-tab="editor" id="tab-editor">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M3.5 3A1.5 1.5 0 002 4.5v11A1.5 1.5 0 003.5 17h13a1.5 1.5 0 001.5-1.5v-11A1.5 1.5 0 0016.5 3h-13zm0 1.5h13v11h-13v-11z"/><path d="M7 7.5l5 2.5-5 2.5V7.5z"/></svg>
+            Chỉnh sửa
+          </button>
+          <button class="nav-tab" data-tab="color" id="tab-color">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="1.5"/></svg>
+            Màu sắc
+          </button>
+          <button class="nav-tab" data-tab="audio" id="tab-audio">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"/></svg>
+            Âm thanh
+          </button>
+          <button class="nav-tab" data-tab="export" id="tab-export">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            Xuất video
+          </button>
+        </nav>
+      </div>
+      <div class="nav-right">
+        <button class="btn-icon" id="btn-undo" title="Hoàn tác (Ctrl+Z)">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="18"><path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 010 14H8a1 1 0 110-2h3a5 5 0 000-10H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </button>
+        <button class="btn-icon" id="btn-redo" title="Làm lại (Ctrl+Y)">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="18"><path fill-rule="evenodd" d="M12.293 3.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 10H9a5 5 0 000 10h3a1 1 0 110 2H9a7 7 0 010-14h5.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+        <div class="divider-v"></div>
+        <button class="btn-save" id="btn-save">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/></svg>
+          Lưu dự án
+        </button>
+        <button class="btn-export-nav" id="btn-export-quick">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          Xuất HD
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== EDITOR TAB ===== -->
+    <main class="app-body" id="panel-editor">
+      <!-- LEFT: Media & AI Panel -->
+      <aside class="panel-left">
+        <!-- Tab switcher -->
+        <div class="panel-tabs">
+          <button class="ptab active" data-ptab="media" id="ptab-media">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><rect x="2" y="2" width="7" height="7" rx="1"/><rect x="11" y="2" width="7" height="7" rx="1"/><rect x="2" y="11" width="7" height="7" rx="1"/><rect x="11" y="11" width="7" height="7" rx="1"/></svg>
+            Media
+          </button>
+          <button class="ptab" data-ptab="ai" id="ptab-ai">
+            <svg viewBox="0 0 20 20" fill="none" width="14"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            AI Tools
+          </button>
+          <button class="ptab" data-ptab="effects" id="ptab-effects">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M11.5 1.5a9.5 9.5 0 100 17 9.5 9.5 0 000-17zM10 3a7 7 0 110 14A7 7 0 0110 3z"/><path d="M10 6l1.5 3h3l-2.5 2 1 3-3-2-3 2 1-3-2.5-2h3z" fill="currentColor"/></svg>
+            Hiệu ứng
+          </button>
+          <button class="ptab" data-ptab="text" id="ptab-text">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M3 4h14v2H3V4zm0 5h14v2H3V9zm0 5h8v2H3v-2z"/></svg>
+            Văn bản
+          </button>
+        </div>
+
+        <!-- MEDIA Panel -->
+        <div class="panel-content active" id="pcontent-media">
+          <div class="media-upload-zone" id="media-upload-zone">
+            <div class="upload-icon">
+              <svg viewBox="0 0 48 48" fill="none" width="48">
+                <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4z" fill="rgba(124,58,237,0.15)" stroke="rgba(124,58,237,0.5)" stroke-width="1.5"/>
+                <path d="M16 26l8-8 8 8M24 18v16" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="upload-title">Kéo thả video vào đây</p>
+            <p class="upload-sub">hoặc</p>
+            <label class="btn-upload" for="file-input-video">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 11 0 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/><path d="M14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>
+              Chọn video
+            </label>
+            <input type="file" id="file-input-video" accept="video/*" multiple style="display:none"/>
+            <p class="upload-formats">MP4, MOV, AVI, MKV, WebM</p>
+          </div>
+
+          <div class="media-library" id="media-library">
+            <div class="media-library-header">
+              <span>Thư viện media <span id="media-count" style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:400;"></span></span>
+              <div style="display:flex;gap:5px;align-items:center;">
+                <button class="btn-clear-media" id="btn-clear-media" title="Xóa tất cả media">🗑 Xóa tất cả</button>
+                <button class="btn-add-media" id="btn-add-media">+ Thêm</button>
+              </div>
+            </div>
+
+            <div class="media-grid" id="media-grid">
+              <!-- Media items injected here -->
+            </div>
+          </div>
+
+          <!-- Stock Media -->
+          <div class="stock-section">
+            <div class="stock-header">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 2a6 6 0 11-3.93 10.61l-.04-.04A6 6 0 0110 4z"/></svg>
+              Stock Media
+            </div>
+            <div class="stock-grid">
+              <div class="stock-item" style="--c1:#7c3aed;--c2:#06b6d4">Cinematic</div>
+              <div class="stock-item" style="--c1:#f59e0b;--c2:#ef4444">Sunset</div>
+              <div class="stock-item" style="--c1:#10b981;--c2:#06b6d4">Nature</div>
+              <div class="stock-item" style="--c1:#ec4899;--c2:#a78bfa">Neon City</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI TOOLS Panel -->
+        <div class="panel-content" id="pcontent-ai">
+          <div class="ai-header">
+            <div class="ai-badge">
+              <span class="ai-dot"></span>
+              AI Engine Online
+            </div>
+            <span class="ai-version">HD68 v2.0</span>
+          </div>
+
+          <div class="ai-tools-list">
+            <div class="ai-tool-card" data-tool="auto-cut" id="ai-tool-auto-cut">
+              <div class="ai-tool-icon" style="--c1:#7c3aed;--c2:#a78bfa">
+                <svg viewBox="0 0 24 24" fill="none" width="22"><path d="M6 3l4 9-4 9M18 3l-4 9 4 9M3 12h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="ai-tool-info">
+                <div class="ai-tool-name">AI Auto Cut</div>
+                <div class="ai-tool-desc">Tự động cắt theo nhịp nhạc</div>
+              </div>
+              <button class="btn-ai-run" id="btn-auto-cut">Chạy</button>
+            </div>
+
+            <div class="ai-tool-card" data-tool="bg-remove" id="ai-tool-bg-remove">
+              <div class="ai-tool-icon" style="--c1:#059669;--c2:#34d399">
+                <svg viewBox="0 0 24 24" fill="none" width="22"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M9 9v12" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/></svg>
+              </div>
+              <div class="ai-tool-info">
+                <div class="ai-tool-name">Background Remover</div>
+                <div class="ai-tool-desc">Xóa nền thông minh</div>
+              </div>
+              <button class="btn-ai-run" id="btn-bg-remove">Chạy</button>
+            </div>
+
+            <div class="ai-tool-card" data-tool="subtitle" id="ai-tool-subtitle">
+              <div class="ai-tool-icon" style="--c1:#d97706;--c2:#fbbf24">
+                <svg viewBox="0 0 24 24" fill="none" width="22"><rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M6 11h12M6 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </div>
+              <div class="ai-tool-info">
+                <div class="ai-tool-name">AI Subtitle</div>
+                <div class="ai-tool-desc">Tạo phụ đề tự động</div>
+              </div>
+              <button class="btn-ai-run" id="btn-subtitle">Chạy</button>
+            </div>
+
+            <div class="ai-tool-card" data-tool="color-grade" id="ai-tool-color-grade">
+              <div class="ai-tool-icon" style="--c1:#db2777;--c2:#f472b6">
+                <svg viewBox="0 0 24 24" fill="none" width="22"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" stroke="currentColor" stroke-width="1.2"/></svg>
+              </div>
+              <div class="ai-tool-info">
+                <div class="ai-tool-name">AI Color Grade</div>
+                <div class="ai-tool-desc">Tô màu theo phong cách</div>
+              </div>
+              <button class="btn-ai-run" id="btn-color-grade">Chạy</button>
+            </div>
+
+            <div class="ai-tool-card" data-tool="upscale" id="ai-tool-upscale">
+              <div class="ai-tool-icon" style="--c1:#0284c7;--c2:#38bdf8">
+                <svg viewBox="0 0 24 24" fill="none" width="22"><path d="M3 21l7-7M21 3l-7 7M3 3l18 18M15 3h6v6M3 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <div class="ai-tool-info">
+                <div class="ai-tool-name">AI Upscale HD</div>
+                <div class="ai-tool-desc">Nâng cấp lên 4K UHD</div>
+              </div>
+              <button class="btn-ai-run" id="btn-upscale">Chạy</button>
+            </div>
+
+            <div class="ai-tool-card" data-tool="noise" id="ai-tool-noise">
+              <div class="ai-tool-icon" style="--c1:#7c3aed;--c2:#c084fc">
+                <svg viewBox="0 0 24 24" fill="none" width="22"><path d="M3 17l4-8 4 4 4-6 4 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="ai-tool-info">
+                <div class="ai-tool-name">Noise Reduction</div>
+                <div class="ai-tool-desc">Khử tiếng ồn AI</div>
+              </div>
+              <button class="btn-ai-run" id="btn-noise">Chạy</button>
+            </div>
+          </div>
+
+          <!-- AI Progress -->
+          <div class="ai-progress-area" id="ai-progress-area" style="display:none">
+            <div class="ai-progress-label" id="ai-progress-label">Đang xử lý...</div>
+            <div class="ai-progress-bar">
+              <div class="ai-progress-fill" id="ai-progress-fill"></div>
+            </div>
+            <div class="ai-progress-pct" id="ai-progress-pct">0%</div>
+          </div>
+        </div>
+
+        <!-- EFFECTS Panel -->
+        <div class="panel-content" id="pcontent-effects">
+          <div class="effects-section-title">Bộ lọc màu (LUT)</div>
+          <div class="filters-grid" id="filters-grid">
+            <div class="filter-item active" data-filter="none" id="filter-none"><div class="filter-preview fp-none"></div><span>Gốc</span></div>
+            <div class="filter-item" data-filter="cinematic" id="filter-cinematic"><div class="filter-preview fp-cinematic"></div><span>Cinematic</span></div>
+            <div class="filter-item" data-filter="vintage" id="filter-vintage"><div class="filter-preview fp-vintage"></div><span>Vintage</span></div>
+            <div class="filter-item" data-filter="neon" id="filter-neon"><div class="filter-preview fp-neon"></div><span>Neon</span></div>
+            <div class="filter-item" data-filter="bw" id="filter-bw"><div class="filter-preview fp-bw"></div><span>B&W</span></div>
+            <div class="filter-item" data-filter="warm" id="filter-warm"><div class="filter-preview fp-warm"></div><span>Warm</span></div>
+            <div class="filter-item" data-filter="cool" id="filter-cool"><div class="filter-preview fp-cool"></div><span>Cool</span></div>
+            <div class="filter-item" data-filter="dramatic" id="filter-dramatic"><div class="filter-preview fp-dramatic"></div><span>Dramatic</span></div>
+          </div>
+
+          <div class="effects-section-title" style="margin-top:20px">Transitions</div>
+          <div class="transitions-list" id="transitions-list">
+            <div class="transition-item active" data-trans="none">Không có</div>
+            <div class="transition-item" data-trans="fade">Fade</div>
+            <div class="transition-item" data-trans="slide">Slide</div>
+            <div class="transition-item" data-trans="zoom">Zoom</div>
+            <div class="transition-item" data-trans="dissolve">Dissolve</div>
+            <div class="transition-item" data-trans="glitch">Glitch</div>
+          </div>
+
+          <div class="effects-section-title" style="margin-top:20px">Tốc độ</div>
+          <div class="speed-control">
+            <div class="speed-btns">
+              <button class="speed-btn" data-speed="0.25">0.25x</button>
+              <button class="speed-btn" data-speed="0.5">0.5x</button>
+              <button class="speed-btn active" data-speed="1">1x</button>
+              <button class="speed-btn" data-speed="1.5">1.5x</button>
+              <button class="speed-btn" data-speed="2">2x</button>
+              <button class="speed-btn" data-speed="4">4x</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEXT Panel -->
+        <div class="panel-content" id="pcontent-text">
+          <div class="text-presets">
+            <div class="effects-section-title">Kiểu chữ</div>
+            <div class="text-preset-grid">
+              <div class="text-preset" data-style="title" id="tpreset-title">
+                <div class="tp-preview tp-title">TITLE</div>
+                <span>Tiêu đề</span>
+              </div>
+              <div class="text-preset" data-style="subtitle" id="tpreset-subtitle">
+                <div class="tp-preview tp-subtitle">Subtitle</div>
+                <span>Phụ đề</span>
+              </div>
+              <div class="text-preset" data-style="lower-third" id="tpreset-lower">
+                <div class="tp-preview tp-lower">Lower Third</div>
+                <span>Lower 3rd</span>
+              </div>
+              <div class="text-preset" data-style="neon-text" id="tpreset-neon">
+                <div class="tp-preview tp-neon">NEON</div>
+                <span>Neon</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="effects-section-title" style="margin-top:16px">Chỉnh sửa văn bản</div>
+          <div class="text-editor-controls">
+            <input type="text" id="text-input" class="text-input-field" placeholder="Nhập văn bản..." value="HD68 Video" />
+            <div class="text-ctrl-row">
+              <select id="font-select" class="ctrl-select">
+                <option value="Inter">Inter</option>
+                <option value="Space Grotesk">Space Grotesk</option>
+                <option value="serif">Serif</option>
+                <option value="monospace">Monospace</option>
+              </select>
+              <input type="number" id="font-size" class="ctrl-number" value="48" min="8" max="200" />
+            </div>
+            <div class="text-ctrl-row">
+              <label>Màu chữ</label>
+              <input type="color" id="font-color" class="ctrl-color" value="#ffffff" />
+              <label>Bóng</label>
+              <input type="color" id="font-shadow" class="ctrl-color" value="#7c3aed" />
+            </div>
+            <button class="btn-add-text" id="btn-add-text">+ Thêm vào video</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER: Preview & Timeline -->
+      <div class="panel-center">
+        <!-- Video Preview -->
+        <div class="video-preview-area">
+          <div class="preview-toolbar">
+            <div class="preview-resolution">
+              <select id="resolution-select" class="ctrl-select-sm">
+                <option value="1080p">Full HD 1080p</option>
+                <option value="720p">HD 720p</option>
+                <option value="4k">4K UHD</option>
+                <option value="vertical">Vertical 9:16</option>
+              </select>
+            </div>
+            <div class="preview-info" id="preview-info">00:00:00 / 00:00:00</div>
+            <div class="preview-actions">
+              <button class="btn-icon-sm" id="btn-screenshot" title="Chụp ảnh">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+              </button>
+              <button class="btn-icon-sm" id="btn-fullscreen" title="Toàn màn hình">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 011.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 011.414-1.414L15 13.586V12a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+              </button>
+              <button class="btn-icon-sm" id="btn-download-video" title="Tải video về thiết bị">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="video-canvas-wrap" id="video-canvas-wrap">
+            <div class="video-drop-hint" id="video-drop-hint">
+              <div class="drop-hint-icon">
+                <svg viewBox="0 0 80 80" fill="none" width="80">
+                  <circle cx="40" cy="40" r="38" stroke="rgba(124,58,237,0.4)" stroke-width="2" stroke-dasharray="8 4"/>
+                  <polygon points="32,24 32,56 58,40" fill="rgba(167,139,250,0.6)"/>
+                  <circle cx="22" cy="40" r="6" fill="rgba(244,114,182,0.5)"/>
+                </svg>
+              </div>
+              <p>Thêm video để bắt đầu chỉnh sửa</p>
+              <p class="drop-hint-sub">Kéo thả từ thư viện media hoặc máy tính</p>
+            </div>
+            <video id="main-video" playsinline></video>
+            <canvas id="overlay-canvas" style="position:absolute;pointer-events:none;border-radius:8px;"></canvas>
+            <!-- Text overlays injected here -->
+            <div id="text-overlays"></div>
+          </div>
+          <!-- Playback Controls -->
+          <div class="playback-controls">
+            <div class="playback-top">
+              <input type="range" id="seek-bar" class="seek-bar" min="0" max="100" value="0" step="0.1"/>
+            </div>
+            <div class="playback-bottom">
+              <div class="ctrl-left">
+                <button class="ctrl-btn" id="btn-skip-back" title="Lùi 5s">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z"/></svg>
+                  5s
+                </button>
+                <button class="ctrl-btn ctrl-btn-play" id="btn-play-pause">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="20" id="play-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="20" id="pause-icon" style="display:none"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm4-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                </button>
+                <button class="ctrl-btn" id="btn-skip-fwd" title="Tiến 5s">
+                  5s
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M4.555 5.168A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4A1 1 0 0010 6v2.798L4.555 5.168z"/></svg>
+                </button>
+              </div>
+              <div class="ctrl-center">
+                <span class="time-display" id="time-display">00:00 / 00:00</span>
+              </div>
+              <div class="ctrl-right">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" style="opacity:0.6"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217z" clip-rule="evenodd"/><path d="M12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z"/></svg>
+                <input type="range" id="volume-bar" class="volume-bar" min="0" max="1" step="0.01" value="1"/>
+                <button class="ctrl-btn ctrl-btn-sm" id="btn-mute">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" id="mute-icon-on"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="timeline-area">
+          <div class="timeline-toolbar">
+            <div class="tl-tools-left">
+              <button class="tl-btn active" id="tl-tool-select" title="Chọn">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M6.3 2.84l11.03 9.86a.5.5 0 01-.24.86l-4.28.71-2.64 3.97a.5.5 0 01-.9-.06L5.96 3.38a.5.5 0 01.34-.54z"/></svg>
+              </button>
+              <button class="tl-btn" id="tl-tool-cut" title="Cắt">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M5.5 16a2.5 2.5 0 100-5 2.5 2.5 0 000 5zm9 0a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM3.5 5.5l13 7M3.5 12.5l4.25-2.25"/></svg>
+              </button>
+              <button class="tl-btn" id="tl-tool-trim" title="Trim">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M4 5h12v2H4V5zm0 4h8v2H4V9zm0 4h12v2H4v-2z"/></svg>
+              </button>
+              <div class="tl-zoom-ctrl">
+                <button class="tl-btn" id="tl-zoom-out">−</button>
+                <span class="tl-zoom-label" id="tl-zoom-label">100%</span>
+                <button class="tl-btn" id="tl-zoom-in">+</button>
+              </div>
+              <button class="tl-btn" id="btn-merge-clips" title="Ghép các video thành 1 file và tải về" style="width:auto;padding:0 10px;gap:5px;display:flex;align-items:center;">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/></svg>
+                Ghép video
+              </button>
+            </div>
+            <div class="tl-tracks-info">
+              <span id="tl-clips-count">0 clips</span>
+              <span id="tl-duration">00:00</span>
+            </div>
+          </div>
+          <div class="timeline-scroll-area">
+            <div class="timeline-tracks" id="timeline-tracks">
+              <!-- Track Labels -->
+              <div class="tracks-labels">
+                <div class="track-label">
+                  <svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M2 3a1 1 0 011-1h1a1 1 0 011 1v3a1 1 0 01-1 1H3a1 1 0 01-1-1V3zm5-1a1 1 0 00-1 1v3a1 1 0 001 1h1a1 1 0 001-1V3a1 1 0 00-1-1H7zM2 11a1 1 0 011-1h1a1 1 0 011 1v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3zm5-1a1 1 0 00-1 1v3a1 1 0 001 1h1a1 1 0 001-1v-3a1 1 0 00-1-1H7z"/></svg>
+                  Video
+                </div>
+                <div class="track-label audio-label">
+                  <svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M11.536 14.01A8.473 8.473 0 0014.026 8a8.473 8.473 0 00-2.49-6.01l-.708.707A7.476 7.476 0 0113.025 8c0 2.071-.84 3.946-2.197 5.303l.708.707zm-2.122-2.122A5.48 5.48 0 0011.025 8a5.48 5.48 0 00-1.61-3.89l-.707.707A4.482 4.482 0 0110.025 8a4.482 4.482 0 01-1.318 3.183l.707.707zM4 5H2v6h2l3 3V2L4 5z"/></svg>
+                  Audio
+                </div>
+                <div class="track-label text-label">
+                  <svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M2 4h12v2H2V4zm0 4h8v2H2V8zm0 4h12v2H2v-2z"/></svg>
+                  Text
+                </div>
+              </div>
+              <!-- Track Content -->
+              <div class="tracks-content" id="tracks-content">
+                <div class="timeline-ruler" id="timeline-ruler"></div>
+                <div class="track track-video" id="track-video">
+                  <div class="track-empty-hint">Thêm clip video...</div>
+                </div>
+                <div class="track track-audio" id="track-audio">
+                  <div class="track-empty-hint">Thêm audio...</div>
+                </div>
+                <div class="track track-text" id="track-text">
+                  <div class="track-empty-hint">Thêm văn bản...</div>
+                </div>
+                <div class="timeline-playhead" id="timeline-playhead"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Properties Panel -->
+      <aside class="panel-right">
+        <div class="props-header">Thuộc tính clip</div>
+        <div class="props-section" id="props-no-clip">
+          <div class="props-empty">
+            <svg viewBox="0 0 40 40" fill="none" width="40"><rect x="6" y="10" width="28" height="20" rx="3" stroke="rgba(167,139,250,0.4)" stroke-width="1.5"/><path d="M15 15l10 5-10 5V15z" fill="rgba(167,139,250,0.3)"/></svg>
+            <p>Chọn clip để chỉnh sửa thuộc tính</p>
+          </div>
+        </div>
+        <div class="props-section" id="props-clip-controls" style="display:none">
+          <!-- Transform -->
+          <div class="prop-group">
+            <div class="prop-group-title">Transform</div>
+            <div class="prop-row">
+              <label>Scale</label>
+              <input type="range" min="10" max="200" value="100" id="prop-scale" class="prop-range"/>
+              <span class="prop-val" id="prop-scale-val">100%</span>
+            </div>
+            <div class="prop-row">
+              <label>Xoay</label>
+              <input type="range" min="-180" max="180" value="0" id="prop-rotate" class="prop-range"/>
+              <span class="prop-val" id="prop-rotate-val">0°</span>
+            </div>
+            <div class="prop-row">
+              <label>Vị trí X</label>
+              <input type="range" min="-100" max="100" value="0" id="prop-x" class="prop-range"/>
+              <span class="prop-val" id="prop-x-val">0</span>
+            </div>
+            <div class="prop-row">
+              <label>Vị trí Y</label>
+              <input type="range" min="-100" max="100" value="0" id="prop-y" class="prop-range"/>
+              <span class="prop-val" id="prop-y-val">0</span>
+            </div>
+          </div>
+
+          <!-- Opacity & Blend -->
+          <div class="prop-group">
+            <div class="prop-group-title">Độ trong suốt & Hòa trộn</div>
+            <div class="prop-row">
+              <label>Opacity</label>
+              <input type="range" min="0" max="100" value="100" id="prop-opacity" class="prop-range"/>
+              <span class="prop-val" id="prop-opacity-val">100%</span>
+            </div>
+            <div class="prop-row">
+              <label>Blend</label>
+              <select id="prop-blend" class="ctrl-select-sm">
+                <option>Normal</option>
+                <option>Multiply</option>
+                <option>Screen</option>
+                <option>Overlay</option>
+                <option>Soft Light</option>
+                <option>Hard Light</option>
+                <option>Color Dodge</option>
+                <option>Difference</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Color -->
+          <div class="prop-group">
+            <div class="prop-group-title">Màu sắc</div>
+            <div class="prop-row">
+              <label>Sáng</label>
+              <input type="range" min="-100" max="100" value="0" id="prop-brightness" class="prop-range"/>
+              <span class="prop-val" id="prop-brightness-val">0</span>
+            </div>
+            <div class="prop-row">
+              <label>Tương phản</label>
+              <input type="range" min="-100" max="100" value="0" id="prop-contrast" class="prop-range"/>
+              <span class="prop-val" id="prop-contrast-val">0</span>
+            </div>
+            <div class="prop-row">
+              <label>Bão hòa</label>
+              <input type="range" min="-100" max="100" value="0" id="prop-saturation" class="prop-range"/>
+              <span class="prop-val" id="prop-saturation-val">0</span>
+            </div>
+            <div class="prop-row">
+              <label>Hue</label>
+              <input type="range" min="-180" max="180" value="0" id="prop-hue" class="prop-range"/>
+              <span class="prop-val" id="prop-hue-val">0°</span>
+            </div>
+          </div>
+
+          <!-- Speed -->
+          <div class="prop-group">
+            <div class="prop-group-title">Tốc độ phát</div>
+            <div class="prop-row">
+              <label>Speed</label>
+              <input type="range" min="0.1" max="4" step="0.1" value="1" id="prop-speed" class="prop-range"/>
+              <span class="prop-val" id="prop-speed-val">1x</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- ===== COLOR GRADING TAB ===== -->
+    <main class="app-body hidden" id="panel-color">
+      <div class="color-panel-wrap">
+        <div class="color-left">
+          <div class="color-scopes">
+            <div class="scope-header">
+              <span>Waveform</span>
+              <select class="ctrl-select-sm">
+                <option>RGB</option><option>Luma</option><option>Parade</option>
+              </select>
+            </div>
+            <canvas id="waveform-canvas" width="400" height="120"></canvas>
+          </div>
+          <div class="color-wheels">
+            <div class="wheel-section">
+              <div class="wheel-label">Shadows</div>
+              <div class="color-wheel-mini" id="wheel-shadows">
+                <canvas class="wheel-canvas" id="wheel-canvas-shadows" width="120" height="120"></canvas>
+                <div class="wheel-dot" id="wheel-dot-shadows"></div>
+              </div>
+              <input type="range" class="prop-range" min="-50" max="50" value="0" id="lift-val"/>
+            </div>
+            <div class="wheel-section">
+              <div class="wheel-label">Midtones</div>
+              <div class="color-wheel-mini" id="wheel-midtones">
+                <canvas class="wheel-canvas" id="wheel-canvas-midtones" width="120" height="120"></canvas>
+                <div class="wheel-dot" id="wheel-dot-midtones"></div>
+              </div>
+              <input type="range" class="prop-range" min="-50" max="50" value="0" id="gamma-val"/>
+            </div>
+            <div class="wheel-section">
+              <div class="wheel-label">Highlights</div>
+              <div class="color-wheel-mini" id="wheel-highlights">
+                <canvas class="wheel-canvas" id="wheel-canvas-highlights" width="120" height="120"></canvas>
+                <div class="wheel-dot" id="wheel-dot-highlights"></div>
+              </div>
+              <input type="range" class="prop-range" min="-50" max="50" value="0" id="gain-val"/>
+            </div>
+          </div>
+        </div>
+        <div class="color-center">
+          <div class="color-preview-wrap">
+            <div class="color-split-label">Before</div>
+            <div class="color-split-label right">After</div>
+            <video id="color-preview-video" style="width:100%;border-radius:12px;max-height:400px;object-fit:contain;"></video>
+            <div class="color-split-line"></div>
+          </div>
+        </div>
+        <div class="color-right">
+          <div class="prop-group">
+            <div class="prop-group-title">Curves</div>
+            <canvas id="curves-canvas" width="200" height="200" style="width:100%;border-radius:8px;background:rgba(0,0,0,0.4);cursor:crosshair;"></canvas>
+          </div>
+          <div class="prop-group">
+            <div class="prop-group-title">Color Grading</div>
+            <div class="prop-row"><label>Temperature</label><input type="range" min="-100" max="100" value="0" class="prop-range" id="cg-temp"/><span class="prop-val" id="cg-temp-val">0</span></div>
+            <div class="prop-row"><label>Tint</label><input type="range" min="-100" max="100" value="0" class="prop-range" id="cg-tint"/><span class="prop-val" id="cg-tint-val">0</span></div>
+            <div class="prop-row"><label>Vibrance</label><input type="range" min="-100" max="100" value="0" class="prop-range" id="cg-vibrance"/><span class="prop-val" id="cg-vibrance-val">0</span></div>
+            <div class="prop-row"><label>Shadows</label><input type="range" min="-100" max="100" value="0" class="prop-range" id="cg-shadows"/><span class="prop-val" id="cg-shadows-val">0</span></div>
+            <div class="prop-row"><label>Highlights</label><input type="range" min="-100" max="100" value="0" class="prop-range" id="cg-highlights"/><span class="prop-val" id="cg-highlights-val">0</span></div>
+          </div>
+          <div class="prop-group">
+            <div class="prop-group-title">LUT Presets</div>
+            <div class="lut-presets">
+              <button class="lut-btn active" id="lut-none">None</button>
+              <button class="lut-btn" id="lut-cinema">Cinema</button>
+              <button class="lut-btn" id="lut-fuji">Fuji</button>
+              <button class="lut-btn" id="lut-kodak">Kodak</button>
+              <button class="lut-btn" id="lut-teal">Teal & Orange</button>
+              <button class="lut-btn" id="lut-nordic">Nordic</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== AUDIO TAB ===== -->
+    <main class="app-body hidden" id="panel-audio">
+      <div class="audio-panel-wrap">
+        <div class="audio-left">
+          <div class="audio-tracks-header">
+            <span>Audio Tracks</span>
+            <label class="btn-upload small" for="audio-file-input">+ Thêm nhạc</label>
+            <input type="file" id="audio-file-input" accept="audio/*" style="display:none"/>
+          </div>
+          <div class="audio-tracks-list" id="audio-tracks-list">
+            <div class="audio-track-item active">
+              <div class="audio-track-icon">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/></svg>
+              </div>
+              <div class="audio-track-info">
+                <div class="audio-track-name">Video Audio Track</div>
+                <div class="audio-track-dur">—</div>
+              </div>
+              <div class="audio-track-controls">
+                <button class="aud-btn" id="aud-mute-main">M</button>
+                <button class="aud-btn aud-solo" id="aud-solo-main">S</button>
+              </div>
+            </div>
+          </div>
+          <div class="audio-bg-music">
+            <div class="bg-music-header">Nhạc nền miễn phí</div>
+            <div class="bg-music-list">
+              <div class="bg-music-item" data-track="chill" id="bgm-chill">
+                <div class="bgm-play"><svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M4 3l9 5-9 5V3z"/></svg></div>
+                <div class="bgm-info"><div class="bgm-name">Chill Lofi Beat</div><div class="bgm-dur">3:24</div></div>
+                <button class="bgm-add" id="bgm-add-chill">+</button>
+              </div>
+              <div class="bg-music-item" data-track="epic" id="bgm-epic">
+                <div class="bgm-play"><svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M4 3l9 5-9 5V3z"/></svg></div>
+                <div class="bgm-info"><div class="bgm-name">Epic Cinematic</div><div class="bgm-dur">2:58</div></div>
+                <button class="bgm-add" id="bgm-add-epic">+</button>
+              </div>
+              <div class="bg-music-item" data-track="upbeat" id="bgm-upbeat">
+                <div class="bgm-play"><svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M4 3l9 5-9 5V3z"/></svg></div>
+                <div class="bgm-info"><div class="bgm-name">Upbeat Pop</div><div class="bgm-dur">2:41</div></div>
+                <button class="bgm-add" id="bgm-add-upbeat">+</button>
+              </div>
+              <div class="bg-music-item" data-track="ambient" id="bgm-ambient">
+                <div class="bgm-play"><svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M4 3l9 5-9 5V3z"/></svg></div>
+                <div class="bgm-info"><div class="bgm-name">Ambient Space</div><div class="bgm-dur">4:10</div></div>
+                <button class="bgm-add" id="bgm-add-ambient">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="audio-center">
+          <div class="waveform-section">
+            <div class="waveform-header">
+              <span>Waveform Visualizer</span>
+              <div class="waveform-controls">
+                <button class="wf-btn active" id="wf-play">▶</button>
+                <button class="wf-btn" id="wf-stop">■</button>
+              </div>
+            </div>
+            <canvas id="audio-waveform" width="800" height="160" style="width:100%;border-radius:8px;"></canvas>
+          </div>
+        </div>
+        <div class="audio-right">
+          <div class="prop-group">
+            <div class="prop-group-title">Mixer</div>
+            <div class="prop-row"><label>Volume tổng</label><input type="range" min="0" max="200" value="100" class="prop-range" id="master-vol"/><span class="prop-val" id="master-vol-val">100%</span></div>
+            <div class="prop-row"><label>Fade In</label><input type="range" min="0" max="5" step="0.1" value="0" class="prop-range" id="fade-in"/><span class="prop-val" id="fade-in-val">0s</span></div>
+            <div class="prop-row"><label>Fade Out</label><input type="range" min="0" max="5" step="0.1" value="0" class="prop-range" id="fade-out"/><span class="prop-val" id="fade-out-val">0s</span></div>
+          </div>
+          <div class="prop-group">
+            <div class="prop-group-title">Equalizer</div>
+            <div class="eq-bars">
+              <div class="eq-bar-wrap"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" id="eq-80"/><label>80Hz</label></div>
+              <div class="eq-bar-wrap"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" id="eq-250"/><label>250Hz</label></div>
+              <div class="eq-bar-wrap"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" id="eq-1k"/><label>1kHz</label></div>
+              <div class="eq-bar-wrap"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" id="eq-4k"/><label>4kHz</label></div>
+              <div class="eq-bar-wrap"><input type="range" class="eq-slider" orient="vertical" min="-12" max="12" value="0" id="eq-16k"/><label>16kHz</label></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== EXPORT TAB ===== -->
+    <main class="app-body hidden" id="panel-export">
+      <div class="export-wrap">
+        <div class="export-left">
+          <div class="export-section-title">Cài đặt xuất video</div>
+          <div class="export-form">
+            <div class="export-field">
+              <label>Tên file</label>
+              <input type="text" id="export-filename" class="export-input" value="HD68_output" placeholder="Nhập tên file..."/>
+            </div>
+            <div class="export-field">
+              <label>Định dạng</label>
+              <div class="format-grid">
+                <label class="format-opt active" id="fmt-mp4"><input type="radio" name="format" value="mp4" checked hidden/>MP4</label>
+                <label class="format-opt" id="fmt-mov"><input type="radio" name="format" value="mov" hidden/>MOV</label>
+                <label class="format-opt" id="fmt-webm"><input type="radio" name="format" value="webm" hidden/>WebM</label>
+                <label class="format-opt" id="fmt-gif"><input type="radio" name="format" value="gif" hidden/>GIF</label>
+              </div>
+            </div>
+            <div class="export-field">
+              <label>Chất lượng</label>
+              <div class="quality-cards">
+                <div class="quality-card" id="qcard-720">
+                  <div class="qcard-badge">HD</div>
+                  <div class="qcard-res">1280×720</div>
+                  <div class="qcard-label">720p</div>
+                  <div class="qcard-size">~150 MB</div>
+                </div>
+                <div class="quality-card active" id="qcard-1080">
+                  <div class="qcard-badge" style="background:linear-gradient(135deg,#7c3aed,#06b6d4)">FHD</div>
+                  <div class="qcard-res">1920×1080</div>
+                  <div class="qcard-label">1080p</div>
+                  <div class="qcard-size">~350 MB</div>
+                </div>
+                <div class="quality-card" id="qcard-4k">
+                  <div class="qcard-badge" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">4K</div>
+                  <div class="qcard-res">3840×2160</div>
+                  <div class="qcard-label">4K UHD</div>
+                  <div class="qcard-size">~1.2 GB</div>
+                </div>
+              </div>
+            </div>
+            <div class="export-field">
+              <label>Bitrate Video</label>
+              <select class="ctrl-select" id="export-bitrate">
+                <option value="4000">4 Mbps (Tốt)</option>
+                <option value="8000" selected>8 Mbps (Rất tốt)</option>
+                <option value="16000">16 Mbps (Xuất sắc)</option>
+                <option value="50000">50 Mbps (Lossless)</option>
+              </select>
+            </div>
+            <div class="export-field">
+              <label>FPS</label>
+              <div class="fps-btns">
+                <button class="fps-btn" data-fps="24" id="fps-24">24 fps</button>
+                <button class="fps-btn active" data-fps="30" id="fps-30">30 fps</button>
+                <button class="fps-btn" data-fps="60" id="fps-60">60 fps</button>
+                <button class="fps-btn" data-fps="120" id="fps-120">120 fps</button>
+              </div>
+            </div>
+            <div class="export-options">
+              <label class="checkbox-label"><input type="checkbox" id="opt-burn-sub" checked/> Burn-in phụ đề</label>
+              <label class="checkbox-label"><input type="checkbox" id="opt-hdr"/> HDR</label>
+              <label class="checkbox-label"><input type="checkbox" id="opt-hw-accel" checked/> GPU Acceleration</label>
+            </div>
+          </div>
+        </div>
+        <div class="export-center">
+          <div class="export-preview-area">
+            <div class="export-preview-title">Xem trước xuất</div>
+            <div class="export-thumb">
+              <svg viewBox="0 0 120 80" fill="none" width="120">
+                <rect width="120" height="80" rx="8" fill="rgba(124,58,237,0.15)"/>
+                <polygon points="48,24 48,56 82,40" fill="rgba(167,139,250,0.6)"/>
+              </svg>
+              <div class="export-thumb-label" id="export-quality-label">Full HD 1080p</div>
+            </div>
+          </div>
+
+          <!-- Export Button & Progress -->
+          <div class="export-action-area" id="export-action-area">
+            <div class="export-info-row">
+              <div class="export-info-item">
+                <span class="einfo-label">Thời lượng</span>
+                <span class="einfo-val" id="export-dur">0:00</span>
+              </div>
+              <div class="export-info-item">
+                <span class="einfo-label">Clips</span>
+                <span class="einfo-val" id="export-clips">0</span>
+              </div>
+              <div class="export-info-item">
+                <span class="einfo-label">Dung lượng ước tính</span>
+                <span class="einfo-val" id="export-size-est">~350 MB</span>
+              </div>
+            </div>
+            <button class="btn-export-main" id="btn-start-export">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              XUẤT VIDEO HD68
+            </button>
+            <div class="export-progress-area" id="export-progress-area" style="display:none">
+              <div class="ep-stage" id="ep-stage">Chuẩn bị...</div>
+              <div class="ep-bar-wrap">
+                <div class="ep-bar">
+                  <div class="ep-fill" id="ep-fill"></div>
+                </div>
+                <span class="ep-pct" id="ep-pct">0%</span>
+              </div>
+              <div class="ep-details">
+                <span id="ep-fps-actual">0 fps</span>
+                <span id="ep-time-left">--</span>
+                <span id="ep-size-written">0 MB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="export-right">
+          <div class="export-section-title">Lịch sử xuất</div>
+          <div class="export-history" id="export-history">
+            <div class="history-empty">Chưa có video nào được xuất</div>
+          </div>
+          <div class="export-section-title" style="margin-top:20px">Chia sẻ</div>
+          <div class="share-btns">
+            <button class="share-btn" style="--sc:#ff0000" id="share-yt">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+              YouTube
+            </button>
+            <button class="share-btn" style="--sc:#1877f2" id="share-fb">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              Facebook
+            </button>
+            <button class="share-btn" style="--sc:#e1306c" id="share-ig">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              Instagram
+            </button>
+            <button class="share-btn" style="--sc:#000000" id="share-tiktok">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.2 8.2 0 004.79 1.52V6.75a4.85 4.85 0 01-1.02-.06z"/></svg>
+              TikTok
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== NOTIFICATION TOAST ===== -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- =========================================================
+         MOBILE QUICK ACTIONS (overlay on video canvas)
+         ========================================================= -->
+    <div class="mob-quick-actions" id="mob-quick-actions">
+      <button class="mob-qa-btn" id="mob-qa-upload" title="Thêm video">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+      </button>
+      <button class="mob-qa-btn" id="mob-qa-filter" title="Bộ lọc">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/></svg>
+      </button>
+      <button class="mob-qa-btn" id="mob-qa-text" title="Thêm chữ">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/></svg>
+      </button>
+    </div>
+
+    <!-- =========================================================
+         MOBILE BOTTOM NAV BAR
+         ========================================================= -->
+    <nav class="mob-bottom-nav" id="mob-bottom-nav">
+
+      <!-- Media -->
+      <button class="mob-nav-btn active" id="mob-nav-media" data-sheet="media">
+        <div class="mob-nav-pip"></div>
+        <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+          <rect x="2" y="4" width="20" height="16" rx="3" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M9 9l7 3.5L9 16V9z" fill="currentColor"/>
+        </svg>
+        Media
+      </button>
+
+      <!-- AI FAB (center) -->
+      <button class="mob-fab" id="mob-fab-ai" data-sheet="ai">
+        <div class="mob-fab-ring"></div>
+        <svg viewBox="0 0 24 24" fill="none" width="26" height="26">
+          <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.9)" stroke-width="1.8"/>
+          <path d="M8 12h8M12 8v8" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="3" fill="rgba(255,255,255,0.25)"/>
+        </svg>
+      </button>
+
+      <!-- Effects -->
+      <button class="mob-nav-btn" id="mob-nav-effects" data-sheet="effects">
+        <div class="mob-nav-pip"></div>
+        <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.5"/>
+        </svg>
+        Hiệu ứng
+      </button>
+
+      <!-- Export -->
+      <button class="mob-nav-btn" id="mob-nav-export" data-sheet="export">
+        <div class="mob-nav-pip"></div>
+        <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Xuất
+      </button>
+
+    </nav>
+
+    <!-- =========================================================
+         MOBILE SHEET — MEDIA
+         ========================================================= -->
+    <div class="mob-sheet" id="mob-sheet-media">
+      <div class="mob-sheet-handle"></div>
+      <div class="mob-sheet-header">
+        <div class="mob-sheet-title">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16"><rect x="2" y="2" width="7" height="7" rx="1"/><rect x="11" y="2" width="7" height="7" rx="1"/><rect x="2" y="11" width="7" height="7" rx="1"/><rect x="11" y="11" width="7" height="7" rx="1"/></svg>
+          Thư viện Media
+        </div>
+        <button class="mob-sheet-close" data-close="media">×</button>
+      </div>
+      <div class="mob-sheet-inner">
+        <div class="mob-media-grid" id="mob-media-grid">
+          <!-- Upload button -->
+          <label class="mob-upload-btn" for="mob-file-input">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20">
+              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            </svg>
+            Thêm video
+          </label>
+          <input type="file" id="mob-file-input" accept="video/*" multiple style="display:none"/>
+        </div>
+
+        <!-- Stock sections -->
+        <div style="margin-top:16px;">
+          <div class="mob-export-label">Stock Video miễn phí</div>
+          <div class="mob-media-grid">
+            <div class="stock-item" style="--c1:#7c3aed;--c2:#06b6d4;aspect-ratio:16/9;border-radius:10px;">Cinematic</div>
+            <div class="stock-item" style="--c1:#f59e0b;--c2:#ef4444;aspect-ratio:16/9;border-radius:10px;">Sunset</div>
+            <div class="stock-item" style="--c1:#10b981;--c2:#06b6d4;aspect-ratio:16/9;border-radius:10px;">Nature</div>
+            <div class="stock-item" style="--c1:#ec4899;--c2:#a78bfa;aspect-ratio:16/9;border-radius:10px;">Neon City</div>
+            <div class="stock-item" style="--c1:#0284c7;--c2:#22d3ee;aspect-ratio:16/9;border-radius:10px;">Ocean</div>
+            <div class="stock-item" style="--c1:#dc2626;--c2:#f59e0b;aspect-ratio:16/9;border-radius:10px;">Fire</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MOBILE SHEET — AI TOOLS
+         ========================================================= -->
+    <div class="mob-sheet" id="mob-sheet-ai">
+      <div class="mob-sheet-handle"></div>
+      <div class="mob-sheet-header">
+        <div class="mob-sheet-title">
+          <span style="color:#a78bfa">🤖</span>
+          AI Tools
+          <span style="font-size:10px;color:var(--text-muted);font-weight:400;background:rgba(6,182,212,0.15);padding:2px 8px;border-radius:99px;border:1px solid rgba(6,182,212,0.3);">HD68 Online</span>
+        </div>
+        <button class="mob-sheet-close" data-close="ai">×</button>
+      </div>
+      <div class="mob-sheet-inner">
+        <div class="mob-ai-grid">
+
+          <div class="mob-ai-card" id="mob-ai-autocut">
+            <div class="mob-ai-icon" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)">✂️</div>
+            <div>
+              <div class="mob-ai-name">AI Auto Cut</div>
+              <div class="mob-ai-desc">Cắt theo nhịp nhạc</div>
+            </div>
+            <button class="mob-ai-run" data-mob-tool="auto-cut" id="mob-run-autocut">Chạy AI</button>
+          </div>
+
+          <div class="mob-ai-card" id="mob-ai-bgremove">
+            <div class="mob-ai-icon" style="background:linear-gradient(135deg,#059669,#34d399)">🟢</div>
+            <div>
+              <div class="mob-ai-name">Xóa nền</div>
+              <div class="mob-ai-desc">Background AI</div>
+            </div>
+            <button class="mob-ai-run" data-mob-tool="bg-remove" id="mob-run-bgremove">Chạy AI</button>
+          </div>
+
+          <div class="mob-ai-card" id="mob-ai-subtitle">
+            <div class="mob-ai-icon" style="background:linear-gradient(135deg,#d97706,#fbbf24)">📝</div>
+            <div>
+              <div class="mob-ai-name">AI Subtitle</div>
+              <div class="mob-ai-desc">Phụ đề tự động</div>
+            </div>
+            <button class="mob-ai-run" data-mob-tool="subtitle" id="mob-run-subtitle">Chạy AI</button>
+          </div>
+
+          <div class="mob-ai-card" id="mob-ai-colorgrade">
+            <div class="mob-ai-icon" style="background:linear-gradient(135deg,#db2777,#f472b6)">🎨</div>
+            <div>
+              <div class="mob-ai-name">Color Grade</div>
+              <div class="mob-ai-desc">Tô màu AI</div>
+            </div>
+            <button class="mob-ai-run" data-mob-tool="color-grade" id="mob-run-colorgrade">Chạy AI</button>
+          </div>
+
+          <div class="mob-ai-card" id="mob-ai-upscale">
+            <div class="mob-ai-icon" style="background:linear-gradient(135deg,#0284c7,#38bdf8)">📺</div>
+            <div>
+              <div class="mob-ai-name">Upscale 4K</div>
+              <div class="mob-ai-desc">Nâng cấp AI</div>
+            </div>
+            <button class="mob-ai-run" data-mob-tool="upscale" id="mob-run-upscale">Chạy AI</button>
+          </div>
+
+          <div class="mob-ai-card" id="mob-ai-noise">
+            <div class="mob-ai-icon" style="background:linear-gradient(135deg,#7c3aed,#c084fc)">🔇</div>
+            <div>
+              <div class="mob-ai-name">Khử nhiễu</div>
+              <div class="mob-ai-desc">Noise AI</div>
+            </div>
+            <button class="mob-ai-run" data-mob-tool="noise" id="mob-run-noise">Chạy AI</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MOBILE SHEET — EFFECTS / FILTERS
+         ========================================================= -->
+    <div class="mob-sheet" id="mob-sheet-effects">
+      <div class="mob-sheet-handle"></div>
+      <div class="mob-sheet-header">
+        <div class="mob-sheet-title">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M11.5 1.5a9.5 9.5 0 100 17 9.5 9.5 0 000-17zM10 3a7 7 0 110 14A7 7 0 0110 3z"/><path d="M10 6l1.5 3h3l-2.5 2 1 3-3-2-3 2 1-3-2.5-2h3z" fill="currentColor"/></svg>
+          Hiệu ứng & Bộ lọc
+        </div>
+        <button class="mob-sheet-close" data-close="effects">×</button>
+      </div>
+      <div class="mob-sheet-inner">
+
+        <div class="mob-export-label">Bộ lọc màu</div>
+        <div class="mob-filters-scroll" id="mob-filters-scroll">
+          <div class="mob-filter-chip active" data-filter="none" id="mob-filter-none">
+            <div class="mob-filter-thumb fp-none"></div>
+            <span>Gốc</span>
+          </div>
+          <div class="mob-filter-chip" data-filter="cinematic" id="mob-filter-cinematic">
+            <div class="mob-filter-thumb fp-cinematic"></div>
+            <span>Cinematic</span>
+          </div>
+          <div class="mob-filter-chip" data-filter="vintage" id="mob-filter-vintage">
+            <div class="mob-filter-thumb fp-vintage"></div>
+            <span>Vintage</span>
+          </div>
+          <div class="mob-filter-chip" data-filter="neon" id="mob-filter-neon">
+            <div class="mob-filter-thumb fp-neon"></div>
+            <span>Neon</span>
+          </div>
+          <div class="mob-filter-chip" data-filter="bw" id="mob-filter-bw">
+            <div class="mob-filter-thumb fp-bw"></div>
+            <span>B&W</span>
+          </div>
+          <div class="mob-filter-chip" data-filter="warm" id="mob-filter-warm">
+            <div class="mob-filter-thumb fp-warm"></div>
+            <span>Warm</span>
+          </div>
+          <div class="mob-filter-chip" data-filter="cool" id="mob-filter-cool">
+            <div class="mob-filter-thumb fp-cool"></div>
+            <span>Cool</span>
+          </div>
+          <div class="mob-filter-chip" data-filter="dramatic" id="mob-filter-dramatic">
+            <div class="mob-filter-thumb fp-dramatic"></div>
+            <span>Dramatic</span>
+          </div>
+        </div>
+
+        <div class="mob-export-label" style="margin-top:16px">Tốc độ phát</div>
+        <div class="mob-speed-row">
+          <button class="mob-speed-chip" data-speed="0.25">0.25×</button>
+          <button class="mob-speed-chip" data-speed="0.5">0.5×</button>
+          <button class="mob-speed-chip active" data-speed="1">1×</button>
+          <button class="mob-speed-chip" data-speed="1.5">1.5×</button>
+          <button class="mob-speed-chip" data-speed="2">2×</button>
+          <button class="mob-speed-chip" data-speed="4">4×</button>
+        </div>
+
+        <div class="mob-export-label" style="margin-top:16px">Thêm văn bản</div>
+        <input type="text" id="mob-text-input" class="text-input-field" placeholder="Nhập văn bản..." style="width:100%;margin-bottom:10px;" value="HD68"/>
+        <button class="mob-export-btn" id="mob-add-text-btn" style="padding:12px;">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/></svg>
+          Thêm văn bản vào video
+        </button>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MOBILE SHEET — EXPORT
+         ========================================================= -->
+    <div class="mob-sheet" id="mob-sheet-export">
+      <div class="mob-sheet-handle"></div>
+      <div class="mob-sheet-header">
+        <div class="mob-sheet-title">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          Xuất Video
+        </div>
+        <button class="mob-sheet-close" data-close="export">×</button>
+      </div>
+      <div class="mob-sheet-inner">
+        <div class="mob-export-form">
+
+          <div>
+            <div class="mob-export-label">Tên file</div>
+            <input type="text" id="mob-export-filename" class="text-input-field" value="HD68_output" style="width:100%;"/>
+          </div>
+
+          <div>
+            <div class="mob-export-label">Chất lượng</div>
+            <div class="mob-quality-row">
+              <button class="mob-quality-chip" id="mob-q-720">HD<span>720p</span></button>
+              <button class="mob-quality-chip active" id="mob-q-1080">FHD<span>1080p</span></button>
+              <button class="mob-quality-chip" id="mob-q-4k">4K<span>UHD</span></button>
+            </div>
+          </div>
+
+          <div>
+            <div class="mob-export-label">Format</div>
+            <div class="mob-quality-row">
+              <button class="mob-quality-chip active" id="mob-fmt-mp4">MP4</button>
+              <button class="mob-quality-chip" id="mob-fmt-mov">MOV</button>
+              <button class="mob-quality-chip" id="mob-fmt-webm">WebM</button>
+              <button class="mob-quality-chip" id="mob-fmt-gif">GIF</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="mob-export-label">FPS</div>
+            <div class="mob-quality-row">
+              <button class="mob-quality-chip" id="mob-fps-24">24fps</button>
+              <button class="mob-quality-chip active" id="mob-fps-30">30fps</button>
+              <button class="mob-quality-chip" id="mob-fps-60">60fps</button>
+            </div>
+          </div>
+
+          <button class="mob-export-btn" id="mob-export-btn">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            XUẤT VIDEO HD68
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MOBILE AI PROGRESS OVERLAY
+         ========================================================= -->
+    <div class="mob-ai-progress" id="mob-ai-progress">
+      <div class="mob-ai-progress-icon" id="mob-ai-progress-icon">🤖</div>
+      <div class="mob-ai-progress-title" id="mob-ai-progress-title">AI đang xử lý...</div>
+      <div class="mob-ai-progress-label" id="mob-ai-progress-label">Khởi động...</div>
+      <div class="mob-ai-bar-wrap">
+        <div class="mob-ai-bar">
+          <div class="mob-ai-bar-fill" id="mob-ai-bar-fill"></div>
+        </div>
+        <div class="mob-ai-bar-pct" id="mob-ai-bar-pct">0%</div>
+      </div>
+      <button class="mob-ai-cancel" id="mob-ai-cancel">Huỷ</button>
+    </div>
+
+  </div><!-- end #app -->
+
+  <script src="effects.js"></script>
+  <script src="ai-tools.js"></script>
+  <script src="app.js"></script>
+  <script src="mobile.js"></script>
+  <!-- ===== WHISPER AI — Chạy trong browser, không cần server ===== -->
+  <script type="module">
+    import { pipeline, env }
+      from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+    env.allowLocalModels  = false;
+    env.useBrowserCache   = true;   // Cache model sau lần đầu (~40 MB)
+
+    var _cache = {};
+
+    /**
+     * Tải và cache pipeline Whisper.
+     * @param {string} type   'en' | 'multilingual'
+     * @param {Function} onProg  progress_callback
+     */
+    window.HD68LoadWhisper = async function(type, onProg) {
+      var modelId = (type === 'en')
+        ? 'Xenova/whisper-base.en'   // Chỉ tiếng Anh
+        : 'Xenova/whisper-base';     // Đa ngôn ngữ (VI, EN, KO, JA…) — chính xác hơn tiny, vẫn chạy tốt trong trình duyệt
+
+      if (_cache[modelId]) return _cache[modelId];
+
+      var t = await pipeline('automatic-speech-recognition', modelId, {
+        quantized:         true,
+        progress_callback: onProg || null,
+      });
+      _cache[modelId] = t;
+      return t;
+    };
+
+    window.HD68WhisperReady = true;
+    console.log('[HD68] Whisper loader ready');
+  </script>
+</body>
+</html>
