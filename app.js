@@ -1816,10 +1816,13 @@ function _floatArrayToAudioBuffer(float32, sampleRate, audioCtx) {
 }
 
 /* ── TTS: tạo giọng đọc từ văn bản ── */
-async function generateVoiceover() {
-  const textEl = document.getElementById('tts-text');
-  const langEl = document.getElementById('tts-lang');
-  const btn    = document.getElementById('btn-tts-generate');
+/* prefix = '' cho bộ điều khiển desktop, 'mob-' cho bộ điều khiển mobile —
+   hai bản UI dùng chung 1 State.voiceoverTracks/voicePitch* nên luôn đồng bộ. */
+async function generateVoiceover(prefix) {
+  prefix = prefix || '';
+  const textEl = document.getElementById(prefix + 'tts-text');
+  const langEl = document.getElementById(prefix + 'tts-lang');
+  const btn    = document.getElementById(prefix + 'btn-tts-generate');
   const text   = (textEl?.value || '').trim();
   const lang   = langEl?.value || 'vi';
 
@@ -1832,9 +1835,9 @@ async function generateVoiceover() {
     return;
   }
 
-  const progressArea  = document.getElementById('tts-progress');
-  const progressFill  = document.getElementById('tts-progress-fill');
-  const progressLabel = document.getElementById('tts-progress-label');
+  const progressArea  = document.getElementById(prefix + 'tts-progress');
+  const progressFill  = document.getElementById(prefix + 'tts-progress-fill');
+  const progressLabel = document.getElementById(prefix + 'tts-progress-label');
   function setProgress(pct, label) {
     if (progressArea)  progressArea.style.display = 'block';
     if (progressFill)  progressFill.style.width = pct + '%';
@@ -1885,39 +1888,41 @@ async function generateVoiceover() {
 }
 
 function renderVoiceoverTracks() {
-  const list = document.getElementById('voiceover-tracks-list');
-  if (!list) return;
-  list.innerHTML = '';
+  ['voiceover-tracks-list', 'mob-voiceover-tracks-list'].forEach((listId) => {
+    const list = document.getElementById(listId);
+    if (!list) return;
+    list.innerHTML = '';
 
-  State.voiceoverTracks.forEach((track) => {
-    const url = URL.createObjectURL(audioBufferToWav(track.buffer));
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 8px;' +
-      'border-radius:8px;margin-bottom:5px;background:rgba(255,255,255,0.03);' +
-      'border:1px solid rgba(255,255,255,0.06);';
-    row.innerHTML = `
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${track.name}</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.35);display:flex;gap:6px;align-items:center;margin-top:3px;">
-          <span>${track.buffer.duration.toFixed(1)}s</span>
-          <span>Bắt đầu tại</span>
-          <input type="number" step="0.1" min="0" value="${track.startTime}" data-action="start" style="width:52px;padding:2px 4px;border-radius:5px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:9px;"/>s
+    State.voiceoverTracks.forEach((track) => {
+      const url = URL.createObjectURL(audioBufferToWav(track.buffer));
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 8px;' +
+        'border-radius:8px;margin-bottom:5px;background:rgba(255,255,255,0.03);' +
+        'border:1px solid rgba(255,255,255,0.06);';
+      row.innerHTML = `
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${track.name}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.35);display:flex;gap:6px;align-items:center;margin-top:3px;">
+            <span>${track.buffer.duration.toFixed(1)}s</span>
+            <span>Bắt đầu tại</span>
+            <input type="number" step="0.1" min="0" value="${track.startTime}" data-action="start" style="width:52px;padding:2px 4px;border-radius:5px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:9px;"/>s
+          </div>
         </div>
-      </div>
-      <audio controls src="${url}" style="height:26px;max-width:120px;"></audio>
-      <button data-action="delete" style="width:22px;height:22px;border-radius:5px;
-        border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.08);
-        color:rgba(239,68,68,0.7);cursor:pointer;font-size:14px;flex-shrink:0;">&times;</button>
-    `;
-    row.querySelector('[data-action="start"]')?.addEventListener('input', (e) => {
-      track.startTime = Math.max(0, parseFloat(e.target.value) || 0);
+        <audio controls src="${url}" style="height:26px;max-width:120px;"></audio>
+        <button data-action="delete" style="width:22px;height:22px;border-radius:5px;
+          border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.08);
+          color:rgba(239,68,68,0.7);cursor:pointer;font-size:14px;flex-shrink:0;">&times;</button>
+      `;
+      row.querySelector('[data-action="start"]')?.addEventListener('input', (e) => {
+        track.startTime = Math.max(0, parseFloat(e.target.value) || 0);
+      });
+      row.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+        URL.revokeObjectURL(url);
+        State.voiceoverTracks = State.voiceoverTracks.filter(t => t.id !== track.id);
+        renderVoiceoverTracks();
+      });
+      list.appendChild(row);
     });
-    row.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
-      URL.revokeObjectURL(url);
-      State.voiceoverTracks = State.voiceoverTracks.filter(t => t.id !== track.id);
-      renderVoiceoverTracks();
-    });
-    list.appendChild(row);
   });
 }
 
@@ -1978,15 +1983,16 @@ async function _decodeVideoAudioBuffer(video, audioCtx) {
   return audioCtx.decodeAudioData(buf);
 }
 
-async function previewVoiceChange() {
+async function previewVoiceChange(prefix) {
+  prefix = prefix || '';
   const video = document.getElementById('main-video');
-  const btn   = document.getElementById('btn-voice-preview');
-  const progressEl = document.getElementById('voice-preview-progress');
+  const btn   = document.getElementById(prefix + 'btn-voice-preview');
+  const progressEl = document.getElementById(prefix + 'voice-preview-progress');
   if (!video || !video.src || !video.duration) {
     showToast('warning', '⚠️', 'Vui lòng thêm video trước!');
     return;
   }
-  const semitones = parseInt(document.getElementById('voice-pitch')?.value, 10) || 0;
+  const semitones = parseInt(document.getElementById(prefix + 'voice-pitch')?.value, 10) || 0;
   if (!semitones) {
     showToast('info', 'ℹ️', 'Cao độ đang là 0 — chọn 1 preset hoặc kéo thanh trượt trước khi nghe thử.', 3500);
     return;
@@ -2015,30 +2021,44 @@ async function previewVoiceChange() {
   }
 }
 
+/* Desktop và mobile là 2 bộ DOM riêng cho cùng 1 tính năng (giống các
+   sheet mobile khác trong app này) — dùng chung State.voicePitch* nên
+   luôn khớp nhau, chỉ khác id (tiền tố 'mob-'). */
+function _syncVoicePitchUI(val) {
+  ['', 'mob-'].forEach((prefix) => {
+    const slider = document.getElementById(prefix + 'voice-pitch');
+    const label  = document.getElementById(prefix + 'voice-pitch-val');
+    if (slider) slider.value = val;
+    if (label) label.textContent = val > 0 ? '+' + val : String(val);
+  });
+}
+
 function setupVoiceTools() {
-  document.getElementById('btn-tts-generate')?.addEventListener('click', generateVoiceover);
+  ['', 'mob-'].forEach((prefix) => {
+    document.getElementById(prefix + 'btn-tts-generate')?.addEventListener('click', () => generateVoiceover(prefix));
 
-  const pitchSlider = document.getElementById('voice-pitch');
-  const pitchVal     = document.getElementById('voice-pitch-val');
-  pitchSlider?.addEventListener('input', (e) => {
-    State.voicePitch = parseInt(e.target.value, 10) || 0;
-    if (pitchVal) pitchVal.textContent = State.voicePitch > 0 ? '+' + State.voicePitch : String(State.voicePitch);
-  });
-
-  document.querySelectorAll('.voice-preset-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const val = parseInt(btn.getAttribute('data-pitch'), 10) || 0;
-      State.voicePitch = val;
-      if (pitchSlider) pitchSlider.value = val;
-      if (pitchVal) pitchVal.textContent = val > 0 ? '+' + val : String(val);
+    document.getElementById(prefix + 'voice-pitch')?.addEventListener('input', (e) => {
+      State.voicePitch = parseInt(e.target.value, 10) || 0;
+      _syncVoicePitchUI(State.voicePitch);
     });
-  });
 
-  document.getElementById('voice-change-enable')?.addEventListener('change', (e) => {
-    State.voicePitchEnabled = e.target.checked;
-  });
+    document.querySelectorAll('.' + (prefix ? 'mob-' : '') + 'voice-preset-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        State.voicePitch = parseInt(btn.getAttribute('data-pitch'), 10) || 0;
+        _syncVoicePitchUI(State.voicePitch);
+      });
+    });
 
-  document.getElementById('btn-voice-preview')?.addEventListener('click', previewVoiceChange);
+    document.getElementById(prefix + 'voice-change-enable')?.addEventListener('change', (e) => {
+      State.voicePitchEnabled = e.target.checked;
+      ['', 'mob-'].forEach((p) => {
+        const cb = document.getElementById(p + 'voice-change-enable');
+        if (cb) cb.checked = State.voicePitchEnabled;
+      });
+    });
+
+    document.getElementById(prefix + 'btn-voice-preview')?.addEventListener('click', () => previewVoiceChange(prefix));
+  });
 }
 
 // ──────────────────────────────────────────────

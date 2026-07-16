@@ -40,7 +40,7 @@ const Mobile = (() => {
   }
 
   function closeAllSheets() {
-    ['media','ai','effects','export'].forEach(n => {
+    ['media','ai','effects','export','audio'].forEach(n => {
       document.getElementById(`mob-sheet-${n}`)?.classList.remove('open');
     });
   }
@@ -488,13 +488,22 @@ const Mobile = (() => {
 
 // Initialize after DOM is ready (app.js runs first)
 document.addEventListener('DOMContentLoaded', () => {
+  let initialized = false;
   // Wait for splash to finish
   const checkApp = setInterval(() => {
     if (!document.getElementById('splash-screen')) {
       clearInterval(checkApp);
+      initialized = true;
       Mobile.init();
     }
   }, 200);
-  // Fallback
-  setTimeout(() => { Mobile.init(); clearInterval(checkApp); }, 4000);
+  // Fallback — chỉ chạy nếu interval ở trên chưa kịp init (trước đây gọi
+  // Mobile.init() vô điều kiện ở đây, khiến init() chạy 2 lần trong trường
+  // hợp bình thường (splash biến mất trước 4s) → mọi listener điều hướng
+  // (setupNavigation, v.v.) bị gắn trùng, khiến bấm mở sheet rồi tự đóng
+  // ngay lập tức (2 listener cùng gọi toggleSheet).
+  setTimeout(() => {
+    clearInterval(checkApp);
+    if (!initialized) Mobile.init();
+  }, 4000);
 });
