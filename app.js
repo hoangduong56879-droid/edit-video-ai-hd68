@@ -766,6 +766,7 @@ function exportVideoReal(opts) {
     let rafId       = null;
     let stopped     = false;
     let encodeError = null;
+    let deadlineId  = null;
 
     function drawFrame() {
       if (stopped) return;
@@ -781,8 +782,17 @@ function exportVideoReal(opts) {
       if (stopped) return;
       stopped = true;
       if (rafId) cancelAnimationFrame(rafId);
+      if (deadlineId) clearTimeout(deadlineId);
       if (recorder.state !== 'inactive') recorder.stop();
     }
+
+    // Chốt an toàn: rAF có thể bị trình duyệt tạm dừng hẳn khi tab chạy nền
+    // (đổi app, khoá màn hình điện thoại...), khiến drawFrame() không bao
+    // giờ được gọi lại để phát hiện video.ended — bản ghi sẽ chạy vô thời
+    // hạn cho tới khi tab active trở lại, làm track hình dài hơn hẳn track
+    // tiếng thật. setTimeout vẫn được trình duyệt gọi (dù có thể bị trễ)
+    // ngay cả khi tab chạy nền, nên dùng nó làm giới hạn cứng.
+    deadlineId = setTimeout(finish, ((video.duration || 0) / (video.playbackRate || 1) + 4) * 1000);
 
     // isTypeSupported() có thể báo hỗ trợ nhưng encoder thực tế vẫn từ chối
     // giữa chừng (đặc biệt với H.264 phần cứng) — bắt lỗi này thay vì âm
@@ -943,24 +953,39 @@ function mergeAndExportClips(opts) {
         afterLoad.then(() => {
           video.currentTime = 0;
           let stopped = false;
+          let deadlineId = null;
+
+          function advance() {
+            if (stopped) return;
+            stopped = true;
+            if (deadlineId) clearTimeout(deadlineId);
+            video.removeEventListener('ended', advance);
+            elapsedBefore += (clip.duration || video.duration || 0);
+            playNextClip(idx + 1);
+          }
 
           function drawFrame() {
             if (stopped) return;
             ctx.filter = wasFilter || 'none';
             ctx.drawImage(video, 0, 0, w, h);
             drawBurnedSubtitles(ctx, w, h, video.currentTime);
-            const clipDur = clip.duration || video.duration || 0;
             onProgress(((elapsedBefore + video.currentTime) / totalDur) * 100);
-            if (video.ended || video.paused) {
-              stopped = true;
-              elapsedBefore += clipDur;
-              playNextClip(idx + 1);
-              return;
-            }
+            if (video.ended || video.paused) { advance(); return; }
             requestAnimationFrame(drawFrame);
           }
 
-          video.play().then(() => requestAnimationFrame(drawFrame)).catch((err) => {
+          video.play().then(() => {
+            // Chốt an toàn kép (xem giải thích ở _recordSegment): rAF có
+            // thể bị trình duyệt tạm dừng hẳn khi tab chạy nền, khiến
+            // drawFrame() không bao giờ phát hiện video.ended cho clip
+            // này — ghép sẽ bị treo ở giữa chừng và các clip sau bị lệch
+            // thời lượng. 'ended' là sự kiện gốc không phụ thuộc rAF;
+            // setTimeout là giới hạn cứng theo thời lượng clip.
+            video.addEventListener('ended', advance, { once: true });
+            const clipDur = clip.duration || video.duration || 0;
+            deadlineId = setTimeout(advance, (clipDur / (video.playbackRate || 1) + 3) * 1000);
+            requestAnimationFrame(drawFrame);
+          }).catch((err) => {
             encodeError = err.message;
             if (recorder.state !== 'inactive') recorder.stop();
           });
@@ -986,6 +1011,7 @@ function _recordSegment(video, canvas, ctx, startTime, endTime, opts) {
     let rafId = null;
     let stopped = false;
     let encodeError = null;
+    let deadlineId = null;
 
     function drawFrame() {
       if (stopped) return;
@@ -1000,6 +1026,8 @@ function _recordSegment(video, canvas, ctx, startTime, endTime, opts) {
       if (stopped) return;
       stopped = true;
       if (rafId) cancelAnimationFrame(rafId);
+      if (deadlineId) clearTimeout(deadlineId);
+      video.removeEventListener('ended', finish);
       video.pause();
       if (recorder.state !== 'inactive') recorder.stop();
     }
@@ -1023,6 +1051,20 @@ function _recordSegment(video, canvas, ctx, startTime, endTime, opts) {
     video.addEventListener('seeked', function onSeeked() {
       video.removeEventListener('seeked', onSeeked);
       recorder.start(250);
+
+      // Chốt an toàn kép, gắn ngay sau khi recorder đã thật sự bắt đầu ghi
+      // (không gắn sớm hơn — nếu seek chậm và hết hạn trước khi start(),
+      // recorder.state vẫn 'inactive' nên finish() sẽ không gọi được
+      // recorder.stop(), khiến onstop/resolve() không bao giờ chạy — Promise
+      // treo vĩnh viễn). rAF có thể bị trình duyệt tạm dừng hẳn khi tab chạy
+      // nền, khiến drawFrame() không bao giờ phát hiện điểm dừng — track
+      // hình sẽ dài hơn hẳn track tiếng (bug thật đã gặp: hình 40s, tiếng
+      // 10s). 'ended' là sự kiện gốc của thẻ video (không phụ thuộc rAF);
+      // setTimeout là giới hạn cứng theo thời lượng đoạn, vẫn được gọi dù
+      // tab chạy nền.
+      video.addEventListener('ended', finish, { once: true });
+      deadlineId = setTimeout(finish, ((endTime - startTime) / (video.playbackRate || 1) + 3) * 1000);
+
       video.play().then(() => {
         rafId = requestAnimationFrame(drawFrame);
       }).catch((err) => {
