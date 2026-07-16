@@ -973,6 +973,141 @@ function mergeAndExportClips(opts) {
   });
 }
 
+/* Ghi lại đúng 1 đoạn [startTime, endTime) của #main-video ra 1 blob video
+   (dùng chung bộ ghi canvas+MediaRecorder). Trả về {blob, ext} hoặc null
+   nếu lỗi (đã tự hiện toast lỗi bên trong _setupExportRecorder/onerror). */
+function _recordSegment(video, canvas, ctx, startTime, endTime, opts) {
+  return new Promise((resolve) => {
+    const setup = _setupExportRecorder(video, canvas, opts);
+    if (!setup) { resolve(null); return; }
+    const { recorder, mimeType, ext, chunks } = setup;
+    const w = canvas.width, h = canvas.height;
+    const wasFilter = video.style.filter;
+    let rafId = null;
+    let stopped = false;
+    let encodeError = null;
+
+    function drawFrame() {
+      if (stopped) return;
+      ctx.filter = wasFilter || 'none';
+      ctx.drawImage(video, 0, 0, w, h);
+      drawBurnedSubtitles(ctx, w, h, video.currentTime);
+      if (video.ended || video.currentTime >= endTime - 0.02) { finish(); return; }
+      rafId = requestAnimationFrame(drawFrame);
+    }
+
+    function finish() {
+      if (stopped) return;
+      stopped = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      video.pause();
+      if (recorder.state !== 'inactive') recorder.stop();
+    }
+
+    recorder.onerror = (e) => {
+      encodeError = (e && e.error && e.error.message) || 'Loi encoder khong xac dinh';
+      finish();
+    };
+
+    recorder.onstop = () => {
+      _exportRecorder = null;
+      if (encodeError) {
+        showToast('warning', '⚠️', 'Cắt video thất bại: ' + encodeError, 6000);
+        resolve(null);
+        return;
+      }
+      resolve({ blob: new Blob(chunks, { type: mimeType }), ext });
+    };
+
+    _exportRecorder = recorder;
+    video.addEventListener('seeked', function onSeeked() {
+      video.removeEventListener('seeked', onSeeked);
+      recorder.start(250);
+      video.play().then(() => {
+        rafId = requestAnimationFrame(drawFrame);
+      }).catch((err) => {
+        encodeError = err.message;
+        finish();
+      });
+    }, { once: true });
+    video.currentTime = startTime;
+  });
+}
+
+/* Cắt #main-video thành nhiều video ngắn liên tiếp (mỗi đoạn segmentSeconds
+   giây), ghi lại thật từng đoạn qua canvas+MediaRecorder (giữ nguyên color
+   grade + phụ đề đốt cứng như xem trước) và tải về từng file riêng. */
+function splitVideoIntoClips(opts) {
+  opts = opts || {};
+  const video = document.getElementById('main-video');
+  if (!video || !video.src || !video.duration) {
+    showToast('warning', '⚠️', 'Vui lòng thêm video trước khi cắt!');
+    return Promise.resolve(false);
+  }
+  if (_exportRecorder) {
+    showToast('warning', '!', 'Đang xử lý video, vui lòng chờ...');
+    return Promise.resolve(false);
+  }
+  if (typeof MediaRecorder === 'undefined') {
+    showToast('warning', '⚠️', 'Trình duyệt không hỗ trợ tải video (cần Chrome/Edge).', 5000);
+    return Promise.resolve(false);
+  }
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) {
+    showToast('warning', '⚠️', 'Video chưa sẵn sàng, thử lại sau giây lát.');
+    return Promise.resolve(false);
+  }
+
+  const segDur = opts.segmentSeconds ||
+    parseFloat(document.getElementById('split-duration-input')?.value) ||
+    parseFloat(document.getElementById('mob-split-duration-input')?.value) || 15;
+  if (!segDur || segDur <= 0) {
+    showToast('warning', '⚠️', 'Độ dài mỗi đoạn phải lớn hơn 0 giây!');
+    return Promise.resolve(false);
+  }
+
+  const totalDur     = video.duration;
+  const numSegments  = Math.max(1, Math.ceil(totalDur / segDur));
+  const filename      = (document.getElementById('export-filename')?.value || 'HD68_video').trim() || 'HD68_video';
+  const onProgress    = opts.onProgress || function() {};
+  const wasTime       = video.currentTime;
+  const wasPaused     = video.paused;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  showToast('info', '✂️', 'Đang cắt video thành ' + numSegments + ' đoạn (' + segDur + 's/đoạn)...', 4000);
+
+  function recordOne(idx) {
+    if (idx >= numSegments) return Promise.resolve(true);
+    const segStart = idx * segDur;
+    const segEnd   = Math.min(totalDur, segStart + segDur);
+
+    return _recordSegment(video, canvas, ctx, segStart, segEnd, opts).then((result) => {
+      if (!result) return false;
+      _downloadBlob(result.blob, filename + '_phan' + (idx + 1) + '.' + result.ext);
+      onProgress(((idx + 1) / numSegments) * 100);
+      return recordOne(idx + 1);
+    });
+  }
+
+  return recordOne(0).then((ok) => {
+    video.currentTime = wasTime;
+    if (wasPaused) video.pause();
+    if (ok) {
+      onProgress(100);
+      showToast('success', '🎉', 'Đã cắt xong ' + numSegments + ' video ngắn và tải về!', 5000);
+    }
+    return ok;
+  }).catch((err) => {
+    video.currentTime = wasTime;
+    if (wasPaused) video.pause();
+    showToast('warning', '⚠️', 'Lỗi khi cắt video: ' + err.message, 6000);
+    return false;
+  });
+}
+
 /* Vẽ phụ đề đang hiển thị (đúng style + vị trí + highlight từng từ nếu có)
    lên khung hình xuất, để video tải về giống hệt bản xem trước. */
 function drawBurnedSubtitles(ctx, w, h, ct) {
@@ -1206,10 +1341,32 @@ function setupAIButtons() {
     'btn-color-grade': 'color-grade',
     'btn-upscale':     'upscale',
     'btn-noise':       'noise',
+    'btn-split-clips': 'split-clips',
   };
 
   Object.entries(mapping).forEach(([btnId, toolKey]) => {
     document.getElementById(btnId)?.addEventListener('click', () => {
+      // Cắt video ngắn là xử lý thật (ghi canvas+MediaRecorder theo từng
+      // đoạn) — không đi qua thanh tiến trình giả lập của runTool().
+      if (toolKey === 'split-clips') {
+        const progressArea = document.getElementById('ai-progress-area');
+        const progressLabel = document.getElementById('ai-progress-label');
+        const progressFill = document.getElementById('ai-progress-fill');
+        const progressPct = document.getElementById('ai-progress-pct');
+        if (progressArea) progressArea.style.display = '';
+        if (progressLabel) progressLabel.textContent = 'Đang cắt video...';
+        splitVideoIntoClips({
+          onProgress: (pct) => {
+            const rounded = Math.round(pct);
+            if (progressFill) progressFill.style.width = rounded + '%';
+            if (progressPct) progressPct.textContent = rounded + '%';
+          },
+        }).then(() => {
+          if (progressArea) progressArea.style.display = 'none';
+        });
+        return;
+      }
+
       // Phụ đề dùng Whisper thật (xử lý audio ngoài luồng) — không đi qua
       // thanh tiến trình giả lập của runTool(), vì generateSubtitles() tự
       // quản lý tiến trình thật của riêng nó.

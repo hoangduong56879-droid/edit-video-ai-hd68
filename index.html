@@ -263,6 +263,17 @@
               </div>
               <button class="btn-ai-run" id="btn-noise">Chạy</button>
             </div>
+
+            <div class="ai-tool-card" data-tool="split-clips" id="ai-tool-split-clips">
+              <div class="ai-tool-icon" style="--c1:#0891b2;--c2:#22d3ee">
+                <svg viewBox="0 0 24 24" fill="none" width="22"><rect x="2" y="5" width="8" height="14" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="5" width="8" height="14" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M11 9v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="1 3"/></svg>
+              </div>
+              <div class="ai-tool-info">
+                <div class="ai-tool-name">Cắt thành video ngắn</div>
+                <div class="ai-tool-desc">Mỗi đoạn <input type="number" id="split-duration-input" class="ai-split-input" value="15" min="1" max="600">giây</div>
+              </div>
+              <button class="btn-ai-run" id="btn-split-clips">Cắt</button>
+            </div>
           </div>
 
           <!-- AI Progress -->
@@ -1071,6 +1082,15 @@
               <div class="mob-ai-desc">Noise AI</div>
             </div>
             <button class="mob-ai-run" data-mob-tool="noise" id="mob-run-noise">Chạy AI</button>
+          </div>
+
+          <div class="mob-ai-card" id="mob-ai-split-clips">
+            <div class="mob-ai-icon" style="background:linear-gradient(135deg,#0891b2,#22d3ee)">✂️</div>
+            <div>
+              <div class="mob-ai-name">Cắt video ngắn</div>
+              <div class="mob-ai-desc">Mỗi đoạn <input type="number" id="mob-split-duration-input" class="ai-split-input" value="15" min="1" max="600">giây</div>
+            </div>
+            <button class="mob-ai-run" data-mob-tool="split-clips" id="mob-run-split-clips">Chạy AI</button>
           </div>
 
         </div>

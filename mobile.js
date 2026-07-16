@@ -240,6 +240,12 @@ const Mobile = (() => {
     document.querySelectorAll('.mob-ai-run[data-mob-tool]').forEach(btn => {
       btn.addEventListener('click', () => {
         const tool = btn.dataset.mobTool;
+        // Cắt video ngắn là xử lý thật, không dùng thanh tiến trình giả lập.
+        if (tool === 'split-clips') {
+          closeAllSheets();
+          if (typeof splitVideoIntoClips === 'function') splitVideoIntoClips();
+          return;
+        }
         runMobileAI(tool);
       });
     });

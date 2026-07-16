@@ -461,6 +461,12 @@ input[type="range"] { -webkit-appearance: none; appearance: none; }
 .ai-tool-info { flex: 1; min-width: 0; }
 .ai-tool-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
 .ai-tool-desc { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.ai-split-input {
+  width: 38px; text-align: center; margin: 0 3px;
+  font-size: 10px; font-family: inherit; color: var(--text-primary);
+  background: var(--bg-glass); border: 1px solid var(--border);
+  border-radius: 5px; padding: 1px 3px;
+}
 .btn-ai-run {
   padding: 5px 12px; border-radius: 7px;
   background: rgba(124,58,237,0.15); color: var(--purple-light);
