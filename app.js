@@ -1815,16 +1815,88 @@ function _floatArrayToAudioBuffer(float32, sampleRate, audioCtx) {
   return buf;
 }
 
+/* Giọng Adam mặc định của ElevenLabs (voice có sẵn trên mọi tài khoản).
+   Có thể ghi đè bằng ô "Voice ID" trong UI nếu tài khoản dùng voice khác. */
+const ELEVENLABS_ADAM_VOICE_ID = 'pNInz6obpgDQGcFmaJgB';
+const ELEVENLABS_KEY_STORAGE   = 'hd68_elevenlabs_api_key';
+
+function _getElevenLabsSettings(prefix) {
+  const apiKey  = document.getElementById(prefix + 'elevenlabs-api-key')?.value.trim()
+    || localStorage.getItem(ELEVENLABS_KEY_STORAGE) || '';
+  const voiceId = document.getElementById(prefix + 'elevenlabs-voice-id')?.value.trim() || ELEVENLABS_ADAM_VOICE_ID;
+  return { apiKey, voiceId };
+}
+
+/* Gọi thẳng ElevenLabs API từ trình duyệt (không có server riêng để giấu
+   key) — trả về AudioBuffer đã giải mã từ MP3 nhận được. */
+async function _generateElevenLabsVoiceover(text, apiKey, voiceId, setProgress) {
+  if (!apiKey) throw new Error('Chưa nhập API key ElevenLabs');
+
+  setProgress(30, '🌐 Đang gọi ElevenLabs API...');
+  const resp = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
+    method: 'POST',
+    headers: {
+      'xi-api-key': apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'audio/mpeg',
+    },
+    body: JSON.stringify({
+      text,
+      model_id: 'eleven_multilingual_v2',
+      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+    }),
+  });
+
+  if (!resp.ok) {
+    let detail = resp.statusText;
+    try { detail = (await resp.json())?.detail?.message || detail; } catch (e) {}
+    if (resp.status === 401) throw new Error('API key không hợp lệ');
+    if (resp.status === 404) throw new Error('Không tìm thấy voice ID "' + voiceId + '"');
+    if (resp.status === 429) throw new Error('Hết quota ElevenLabs hoặc bị giới hạn tốc độ');
+    throw new Error('ElevenLabs lỗi ' + resp.status + ': ' + detail);
+  }
+
+  setProgress(75, '💾 Đang xử lý âm thanh...');
+  const mp3Buf = await resp.arrayBuffer();
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const decoded = await audioCtx.decodeAudioData(mp3Buf);
+  audioCtx.close();
+  return decoded;
+}
+
+/* Model TTS miễn phí chạy trong trình duyệt (MMS-TTS qua transformers.js) */
+async function _generateLocalVoiceover(text, lang, setProgress) {
+  if (!window.HD68LoadTTS) await _waitForGlobalReady('HD68TTSReady', 8000);
+  if (!window.HD68LoadTTS) throw new Error('Chưa tải xong bộ giọng đọc, thử lại sau giây lát');
+
+  const synth = await window.HD68LoadTTS(lang, (p) => {
+    if (p && p.status === 'progress' && typeof p.progress === 'number') {
+      setProgress(10 + p.progress * 0.5, '📦 Đang tải mô hình... ' + Math.round(p.progress) + '%');
+    }
+  });
+
+  setProgress(70, '🗣️ Đang tạo giọng đọc...');
+  const output = await synth(text);
+  setProgress(95, '💾 Đang xử lý âm thanh...');
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const buffer = _floatArrayToAudioBuffer(output.audio, output.sampling_rate, audioCtx);
+  audioCtx.close();
+  return buffer;
+}
+
 /* ── TTS: tạo giọng đọc từ văn bản ── */
 /* prefix = '' cho bộ điều khiển desktop, 'mob-' cho bộ điều khiển mobile —
    hai bản UI dùng chung 1 State.voiceoverTracks/voicePitch* nên luôn đồng bộ. */
 async function generateVoiceover(prefix) {
   prefix = prefix || '';
-  const textEl = document.getElementById(prefix + 'tts-text');
-  const langEl = document.getElementById(prefix + 'tts-lang');
-  const btn    = document.getElementById(prefix + 'btn-tts-generate');
-  const text   = (textEl?.value || '').trim();
-  const lang   = langEl?.value || 'vi';
+  const textEl   = document.getElementById(prefix + 'tts-text');
+  const langEl   = document.getElementById(prefix + 'tts-lang');
+  const engineEl = document.getElementById(prefix + 'tts-engine');
+  const btn      = document.getElementById(prefix + 'btn-tts-generate');
+  const text     = (textEl?.value || '').trim();
+  const lang     = langEl?.value || 'vi';
+  const engine   = engineEl?.value || 'local';
 
   if (!text) {
     showToast('warning', '⚠️', 'Vui lòng nhập văn bản muốn đọc!');
@@ -1845,29 +1917,22 @@ async function generateVoiceover(prefix) {
   }
 
   if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo...'; }
-  setProgress(10, '📦 Đang tải mô hình giọng đọc...');
+  setProgress(10, engine === 'elevenlabs' ? '🌐 Đang kết nối ElevenLabs...' : '📦 Đang tải mô hình giọng đọc...');
 
   try {
-    if (!window.HD68LoadTTS) await _waitForGlobalReady('HD68TTSReady', 8000);
-    if (!window.HD68LoadTTS) throw new Error('Chưa tải xong bộ giọng đọc, thử lại sau giây lát');
-
-    const synth = await window.HD68LoadTTS(lang, (p) => {
-      if (p && p.status === 'progress' && typeof p.progress === 'number') {
-        setProgress(10 + p.progress * 0.5, '📦 Đang tải mô hình... ' + Math.round(p.progress) + '%');
-      }
-    });
-
-    setProgress(70, '🗣️ Đang tạo giọng đọc...');
-    const output = await synth(text);
-    setProgress(95, '💾 Đang xử lý âm thanh...');
-
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const buffer = _floatArrayToAudioBuffer(output.audio, output.sampling_rate, audioCtx);
-    audioCtx.close();
+    let buffer, voiceLabel;
+    if (engine === 'elevenlabs') {
+      const { apiKey, voiceId } = _getElevenLabsSettings(prefix);
+      buffer = await _generateElevenLabsVoiceover(text, apiKey, voiceId, setProgress);
+      voiceLabel = 'Adam';
+    } else {
+      buffer = await _generateLocalVoiceover(text, lang, setProgress);
+      voiceLabel = null;
+    }
 
     const track = {
       id: Date.now() + Math.random(),
-      name: text.length > 24 ? text.slice(0, 24) + '…' : text,
+      name: (voiceLabel ? '[' + voiceLabel + '] ' : '') + (text.length > 24 ? text.slice(0, 24) + '…' : text),
       lang, buffer,
       startTime: 0,
       volume: 1,
@@ -2034,8 +2099,24 @@ function _syncVoicePitchUI(val) {
 }
 
 function setupVoiceTools() {
+  const savedKey = localStorage.getItem(ELEVENLABS_KEY_STORAGE) || '';
+
   ['', 'mob-'].forEach((prefix) => {
     document.getElementById(prefix + 'btn-tts-generate')?.addEventListener('click', () => generateVoiceover(prefix));
+
+    // Engine chọn "Adam - ElevenLabs" -> hiện ô nhập API key/voice ID
+    const engineEl   = document.getElementById(prefix + 'tts-engine');
+    const settingsEl = document.getElementById(prefix + 'elevenlabs-settings');
+    engineEl?.addEventListener('change', (e) => {
+      if (settingsEl) settingsEl.style.display = e.target.value === 'elevenlabs' ? 'block' : 'none';
+    });
+
+    // Ghi nhớ API key trong trình duyệt của người dùng (không đưa vào code/git)
+    const apiKeyEl = document.getElementById(prefix + 'elevenlabs-api-key');
+    if (apiKeyEl && savedKey) apiKeyEl.value = savedKey;
+    apiKeyEl?.addEventListener('change', (e) => {
+      localStorage.setItem(ELEVENLABS_KEY_STORAGE, e.target.value.trim());
+    });
 
     document.getElementById(prefix + 'voice-pitch')?.addEventListener('input', (e) => {
       State.voicePitch = parseInt(e.target.value, 10) || 0;

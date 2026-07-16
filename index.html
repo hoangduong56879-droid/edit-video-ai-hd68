@@ -740,6 +740,14 @@
               width:100%;min-height:64px;padding:8px 10px;border-radius:8px;resize:vertical;
               background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);
               color:#fff;font-size:12px;font-family:inherit;box-sizing:border-box;"></textarea>
+
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <select id="tts-engine" class="ctrl-select-sm" style="flex:1;">
+                <option value="local">Miễn phí (trình duyệt)</option>
+                <option value="elevenlabs">Adam — ElevenLabs (trả phí)</option>
+              </select>
+            </div>
+
             <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
               <select id="tts-lang" class="ctrl-select-sm" style="flex:1;">
                 <option value="vi">Tiếng Việt</option>
@@ -753,6 +761,23 @@
                 Tạo giọng đọc
               </button>
             </div>
+
+            <!-- Chỉ hiện khi chọn engine ElevenLabs -->
+            <div id="elevenlabs-settings" style="display:none;margin-top:8px;padding:8px;
+              border-radius:8px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:5px;">
+                API key lưu riêng trong trình duyệt của bạn, không gửi lên GitHub/Vercel.
+              </div>
+              <input type="password" id="elevenlabs-api-key" placeholder="API key ElevenLabs (xi-api-key)" style="
+                width:100%;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.3);
+                border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:11px;
+                font-family:monospace;box-sizing:border-box;margin-bottom:6px;"/>
+              <input type="text" id="elevenlabs-voice-id" placeholder="Voice ID (mặc định: Adam)" style="
+                width:100%;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.3);
+                border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:11px;
+                font-family:monospace;box-sizing:border-box;"/>
+            </div>
+
             <div id="tts-progress" style="display:none;margin-top:8px;">
               <div style="height:4px;border-radius:99px;background:rgba(255,255,255,0.08);overflow:hidden;">
                 <div id="tts-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#06b6d4);transition:width .2s;"></div>
@@ -1302,6 +1327,14 @@
               width:100%;min-height:64px;padding:8px 10px;border-radius:8px;resize:vertical;
               background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);
               color:#fff;font-size:13px;font-family:inherit;box-sizing:border-box;"></textarea>
+
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <select id="mob-tts-engine" class="ctrl-select-sm" style="flex:1;">
+                <option value="local">Miễn phí (trình duyệt)</option>
+                <option value="elevenlabs">Adam — ElevenLabs (trả phí)</option>
+              </select>
+            </div>
+
             <div style="display:flex;gap:8px;margin-top:8px;">
               <select id="mob-tts-lang" class="ctrl-select-sm" style="flex:1;">
                 <option value="vi">Tiếng Việt</option>
@@ -1315,6 +1348,22 @@
                 Tạo giọng đọc
               </button>
             </div>
+
+            <div id="mob-elevenlabs-settings" style="display:none;margin-top:8px;padding:8px;
+              border-radius:8px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:5px;">
+                API key lưu riêng trong trình duyệt của bạn.
+              </div>
+              <input type="password" id="mob-elevenlabs-api-key" placeholder="API key ElevenLabs" style="
+                width:100%;padding:8px;border-radius:6px;background:rgba(0,0,0,0.3);
+                border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:12px;
+                font-family:monospace;box-sizing:border-box;margin-bottom:6px;"/>
+              <input type="text" id="mob-elevenlabs-voice-id" placeholder="Voice ID (mặc định: Adam)" style="
+                width:100%;padding:8px;border-radius:6px;background:rgba(0,0,0,0.3);
+                border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:12px;
+                font-family:monospace;box-sizing:border-box;"/>
+            </div>
+
             <div id="mob-tts-progress" style="display:none;margin-top:8px;">
               <div style="height:4px;border-radius:99px;background:rgba(255,255,255,0.08);overflow:hidden;">
                 <div id="mob-tts-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#06b6d4);transition:width .2s;"></div>
