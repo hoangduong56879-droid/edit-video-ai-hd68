@@ -166,15 +166,22 @@ function setupNavTabs() {
 function setupPanelTabs() {
   const ptabs = document.querySelectorAll('.ptab');
   ptabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      ptabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const key = tab.dataset.ptab;
-      document.querySelectorAll('.panel-content').forEach(c => c.classList.remove('active'));
-      const target = document.getElementById(`pcontent-${key}`);
-      if (target) target.classList.add('active');
-    });
+    tab.addEventListener('click', () => switchToPanelTab(tab.dataset.ptab));
   });
+}
+
+/* Chuyển tab con bên trái (Media / AI Tools / Hiệu ứng / Văn bản) bằng code,
+   dùng để tự động nhảy sang mục chỉnh sửa ngay sau khi thêm video.
+   Trên mobile giao diện dùng bottom-sheet riêng (Mobile.openSheet) nên gọi cả hai. */
+function switchToPanelTab(key) {
+  document.querySelectorAll('.ptab').forEach(t => t.classList.toggle('active', t.dataset.ptab === key));
+  document.querySelectorAll('.panel-content').forEach(c => c.classList.remove('active'));
+  const target = document.getElementById(`pcontent-${key}`);
+  if (target) target.classList.add('active');
+
+  if (typeof Mobile !== 'undefined' && Mobile.isMobile && Mobile.isMobile()) {
+    Mobile.openSheet(key);
+  }
 }
 
 // ──────────────────────────────────────────────
@@ -238,8 +245,13 @@ function addClipToLibrary(clip) {
     // Add to media grid
     addMediaItem(clip);
 
-    // If first clip, load into player
-    if (State.clips.length === 1) loadClipIntoPlayer(clip);
+    // If first clip, load into player and jump straight to editing —
+    // người dùng chỉ cần thêm video là vào thẳng khu vực chỉnh sửa,
+    // không phải tự bấm thêm tab nào nữa.
+    if (State.clips.length === 1) {
+      loadClipIntoPlayer(clip);
+      switchToPanelTab('ai');
+    }
 
     updateTimeline();
     showToast('success', '🎬', `Đã thêm: ${clip.name}`);
