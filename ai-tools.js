@@ -352,11 +352,32 @@ const AITools = (function() {
     var progressPct   = document.getElementById('ai-progress-pct');
     var runBtn        = document.getElementById('btn-subtitle');
 
+    // Overlay tiến trình thật của mobile — mobile không dùng #ai-progress-*
+    // (đó là DOM riêng của desktop). Trước đây mobile chỉ chạy 1 thanh tiến
+    // trình giả rồi báo "Hoàn thành!" trong ~3s, sau đó việc nhận dạng thật
+    // (tải model + Whisper) vẫn chạy ngầm thêm 5-10s+ mà không có gì hiển
+    // thị — người dùng tưởng bị treo/lỗi. Cập nhật luôn overlay thật này
+    // trong lúc xử lý để mobile thấy đúng tiến trình thật.
+    var mobOverlay = document.getElementById('mob-ai-progress');
+    var mobIcon    = document.getElementById('mob-ai-progress-icon');
+    var mobTitle   = document.getElementById('mob-ai-progress-title');
+    var mobLabel   = document.getElementById('mob-ai-progress-label');
+    var mobFill    = document.getElementById('mob-ai-bar-fill');
+    var mobPct     = document.getElementById('mob-ai-bar-pct');
+    if (mobOverlay) {
+      mobOverlay.classList.add('show');
+      if (mobIcon) mobIcon.textContent = '📝';
+      if (mobTitle) mobTitle.textContent = 'AI Subtitle đang xử lý...';
+    }
+
     function setProgress(pct, label) {
       if (progressArea)  progressArea.style.display = 'block';
       if (progressLabel) progressLabel.textContent   = label;
       if (progressFill)  progressFill.style.width    = pct + '%';
       if (progressPct)   progressPct.textContent     = Math.round(pct) + '%';
+      if (mobLabel) mobLabel.textContent = label;
+      if (mobFill)  mobFill.style.width  = pct + '%';
+      if (mobPct)   mobPct.textContent   = Math.round(pct) + '%';
       _updateLiveBar(label, true);
     }
 
@@ -370,6 +391,7 @@ const AITools = (function() {
       _updateLiveBar('', false);
       var stopBtn = document.getElementById('btn-stop-subtitle');
       if (stopBtn) stopBtn.remove();
+      if (mobOverlay) mobOverlay.classList.remove('show');
     }
 
     if (runBtn) {

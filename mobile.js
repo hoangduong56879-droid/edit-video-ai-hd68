@@ -168,18 +168,17 @@ const Mobile = (() => {
 
   // ── Mobile AI Tools ────────────────────────────────────────────
   const AI_ICONS = {
-    'auto-cut': '✂️', 'bg-remove': '🟢', 'subtitle': '📝',
+    'auto-cut': '✂️', 'bg-remove': '🟢',
     'color-grade': '🎨', 'upscale': '📺', 'noise': '🔇',
   };
   const AI_TITLES = {
     'auto-cut': 'AI Auto Cut', 'bg-remove': 'Background Remover',
-    'subtitle': 'AI Subtitle', 'color-grade': 'AI Color Grade',
+    'color-grade': 'AI Color Grade',
     'upscale': 'AI Upscale 4K', 'noise': 'Noise Reduction',
   };
   const AI_STAGES = {
     'auto-cut':    [{ l:'Phân tích âm thanh...', p:15 },{ l:'Phát hiện nhịp điệu...', p:35 },{ l:'Tính điểm cắt tối ưu...', p:58 },{ l:'Áp dụng cắt...', p:82 },{ l:'✅ Hoàn thành!', p:100 }],
     'bg-remove':   [{ l:'Phân tích khung hình...', p:12 },{ l:'Tách nền SegmentNet...', p:38 },{ l:'Tinh chỉnh biên...', p:65 },{ l:'Render alpha...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
-    'subtitle':    [{ l:'Khởi động Whisper AI...', p:10 },{ l:'Nhận dạng giọng nói...', p:32 },{ l:'Dịch & căn thời gian...', p:58 },{ l:'Burn-in phụ đề...', p:88 },{ l:'✅ Hoàn thành!', p:100 }],
     'color-grade': [{ l:'Phân tích histogram...', p:18 },{ l:'Áp dụng LUT AI...', p:45 },{ l:'Cân bằng trắng...', p:72 },{ l:'Tối ưu tương phản...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
     'upscale':     [{ l:'Khởi động Real-ESRGAN...', p:8 },{ l:'Phân tích độ phân giải...', p:22 },{ l:'Upscale 1/3 frames...', p:45 },{ l:'Upscale 2/3 frames...', p:68 },{ l:'Encode 4K UHD...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
     'noise':       [{ l:'Phân tích tạp âm...', p:20 },{ l:'Xây dựng noise profile...', p:46 },{ l:'DeepFilter AI...', p:72 },{ l:'Tối ưu âm thanh...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
@@ -217,11 +216,10 @@ const Mobile = (() => {
           if (overlay) overlay.classList.remove('show');
           const msgs = {
             'auto-cut':'✂️ Auto Cut hoàn thành!','bg-remove':'🟢 Xóa nền hoàn thành!',
-            'subtitle':'📝 Phụ đề đã tạo!','color-grade':'🎨 Color Grade xong!',
+            'color-grade':'🎨 Color Grade xong!',
             'upscale':'📺 Video đã upscale 4K!','noise':'🔇 Khử nhiễu xong!',
           };
           showToast('success','🤖', msgs[toolKey] || 'AI hoàn thành!', 4000);
-          if (toolKey === 'subtitle') { if(typeof AITools !== 'undefined') AITools.generateSubtitles(); }
           if (toolKey === 'color-grade') { if(typeof AITools !== 'undefined') AITools.applyColorGrade('cinematic'); }
         }, 600);
         return;
@@ -240,10 +238,19 @@ const Mobile = (() => {
     document.querySelectorAll('.mob-ai-run[data-mob-tool]').forEach(btn => {
       btn.addEventListener('click', () => {
         const tool = btn.dataset.mobTool;
-        // Cắt video ngắn là xử lý thật, không dùng thanh tiến trình giả lập.
+        // Cắt video ngắn và AI Subtitle là xử lý thật, không đi qua thanh
+        // tiến trình giả lập — subtitle trước đây báo "Hoàn thành!" giả sau
+        // ~3s trong khi việc nhận dạng thật (tải model + Whisper) vẫn chạy
+        // ngầm thêm nhiều giây sau đó mà không hiển thị gì, khiến người
+        // dùng tưởng bị treo. generateSubtitles() giờ tự cập nhật overlay
+        // tiến trình thật (mob-ai-progress) trong suốt quá trình xử lý.
         if (tool === 'split-clips') {
           closeAllSheets();
           if (typeof splitVideoIntoClips === 'function') splitVideoIntoClips();
+          return;
+        }
+        if (tool === 'subtitle') {
+          if (typeof AITools !== 'undefined') AITools.generateSubtitles();
           return;
         }
         runMobileAI(tool);
