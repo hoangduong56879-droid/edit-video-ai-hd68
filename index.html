@@ -732,6 +732,35 @@
               </div>
             </div>
           </div>
+
+          <!-- TTS — Tạo giọng đọc -->
+          <div class="audio-bg-music" id="tts-panel">
+            <div class="bg-music-header">🗣️ Tạo giọng đọc (Text-to-Speech)</div>
+            <textarea id="tts-text" placeholder="Nhập văn bản muốn đọc thành giọng nói..." style="
+              width:100%;min-height:64px;padding:8px 10px;border-radius:8px;resize:vertical;
+              background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);
+              color:#fff;font-size:12px;font-family:inherit;box-sizing:border-box;"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+              <select id="tts-lang" class="ctrl-select-sm" style="flex:1;">
+                <option value="vi">Tiếng Việt</option>
+                <option value="en">English</option>
+                <option value="ko">한국어</option>
+                <option value="ja">日本語</option>
+              </select>
+              <button id="btn-tts-generate" style="padding:6px 14px;border-radius:8px;
+                background:linear-gradient(135deg,#7c3aed,#06b6d4);color:#fff;
+                font-size:11px;font-weight:700;cursor:pointer;border:none;white-space:nowrap;">
+                Tạo giọng đọc
+              </button>
+            </div>
+            <div id="tts-progress" style="display:none;margin-top:8px;">
+              <div style="height:4px;border-radius:99px;background:rgba(255,255,255,0.08);overflow:hidden;">
+                <div id="tts-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#06b6d4);transition:width .2s;"></div>
+              </div>
+              <div id="tts-progress-label" style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;"></div>
+            </div>
+            <div id="voiceover-tracks-list" style="margin-top:10px;"></div>
+          </div>
         </div>
         <div class="audio-center">
           <div class="waveform-section">
@@ -751,6 +780,24 @@
             <div class="prop-row"><label>Volume tổng</label><input type="range" min="0" max="200" value="100" class="prop-range" id="master-vol"/><span class="prop-val" id="master-vol-val">100%</span></div>
             <div class="prop-row"><label>Fade In</label><input type="range" min="0" max="5" step="0.1" value="0" class="prop-range" id="fade-in"/><span class="prop-val" id="fade-in-val">0s</span></div>
             <div class="prop-row"><label>Fade Out</label><input type="range" min="0" max="5" step="0.1" value="0" class="prop-range" id="fade-out"/><span class="prop-val" id="fade-out-val">0s</span></div>
+          </div>
+          <div class="prop-group">
+            <div class="prop-group-title">🎚️ Đổi giọng nói</div>
+            <div class="prop-row">
+              <label>Bật đổi giọng</label>
+              <input type="checkbox" id="voice-change-enable" style="accent-color:#7c3aed;width:auto;"/>
+            </div>
+            <div class="prop-row"><label>Cao độ</label><input type="range" min="-12" max="12" value="0" step="1" class="prop-range" id="voice-pitch"/><span class="prop-val" id="voice-pitch-val">0</span></div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0;">
+              <button class="voice-preset-btn" data-pitch="-6" style="flex:1;min-width:70px;padding:5px 6px;border-radius:7px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:9px;cursor:pointer;">Nam trầm</button>
+              <button class="voice-preset-btn" data-pitch="6" style="flex:1;min-width:70px;padding:5px 6px;border-radius:7px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:9px;cursor:pointer;">Nữ cao</button>
+              <button class="voice-preset-btn" data-pitch="-12" style="flex:1;min-width:70px;padding:5px 6px;border-radius:7px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:9px;cursor:pointer;">Robot/Quái vật</button>
+              <button class="voice-preset-btn" data-pitch="0" style="flex:1;min-width:70px;padding:5px 6px;border-radius:7px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:9px;cursor:pointer;">Bình thường</button>
+            </div>
+            <button id="btn-voice-preview" style="width:100%;padding:6px;border-radius:8px;
+              background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.35);color:#22d3ee;
+              font-size:11px;font-weight:700;cursor:pointer;">🔊 Nghe thử</button>
+            <div id="voice-preview-progress" style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:5px;display:none;"></div>
           </div>
           <div class="prop-group">
             <div class="prop-group-title">Equalizer</div>
@@ -1276,6 +1323,34 @@
 
     window.HD68WhisperReady = true;
     console.log('[HD68] Whisper loader ready');
+
+    /* ===== TTS — Tạo giọng đọc từ văn bản, chạy trong browser ===== */
+    var TTS_MODEL_MAP = {
+      vi: 'Xenova/mms-tts-vie',
+      en: 'Xenova/mms-tts-eng',
+      ko: 'Xenova/mms-tts-kor',
+      ja: 'Xenova/mms-tts-jpn',
+    };
+
+    /**
+     * Tải và cache pipeline TTS theo ngôn ngữ.
+     * @param {string} lang  'vi' | 'en' | 'ko' | 'ja'
+     * @param {Function} onProg  progress_callback
+     */
+    window.HD68LoadTTS = async function(lang, onProg) {
+      var modelId = TTS_MODEL_MAP[lang] || TTS_MODEL_MAP.vi;
+      if (_cache[modelId]) return _cache[modelId];
+
+      var t = await pipeline('text-to-speech', modelId, {
+        quantized:         true,
+        progress_callback: onProg || null,
+      });
+      _cache[modelId] = t;
+      return t;
+    };
+
+    window.HD68TTSReady = true;
+    console.log('[HD68] TTS loader ready');
   </script>
 </body>
 </html>

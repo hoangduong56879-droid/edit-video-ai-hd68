@@ -21,6 +21,9 @@ const State = {
   exportHistory: [],
   colorSettings: { brightness: 0, contrast: 0, saturation: 0, hue: 0 },
   speed: 1,
+  voiceoverTracks: [],   // { id, name, lang, buffer (AudioBuffer), startTime, volume }
+  voicePitch: 0,         // bán cung dịch cao độ cho giọng gốc của video khi xuất
+  voicePitchEnabled: false,
 };
 
 // ──────────────────────────────────────────────
@@ -105,6 +108,7 @@ function initApp() {
   setupExportPanel();
   setupColorPanel();
   setupAudioPanel();
+  setupVoiceTools();
   setupAIButtons();
   setupTimeline();
   setupKeyboard();
@@ -674,19 +678,70 @@ let _exportRecorder = null;
 
 /* Dựng canvas capture stream + MediaRecorder dùng chung cho tải 1 video
    và ghép nhiều video. Trả về null (và tự hiện toast lỗi) nếu môi trường
-   không hỗ trợ. */
+   không hỗ trợ.
+
+   opts.pitchedBuffer   — nếu có, thay hẳn audio gốc của video bằng bản đã
+                          đổi giọng (AudioBuffer đã pitch-shift trước đó).
+   opts.voiceoverTracks — mảng track TTS cộng thêm vào, mỗi track phát tại
+                          đúng thời điểm track.startTime (giây) kể từ lúc
+                          bắt đầu ghi.
+   Trả thêm audioCtx + startAudioGraph(): gọi startAudioGraph() đúng lúc
+   video thật sự bắt đầu play để mọi nguồn âm thanh đồng bộ với nhau. */
 function _setupExportRecorder(video, canvas, opts) {
+  opts = opts || {};
   let mediaStream;
+  let audioCtx;
+  let startAudioGraph = function() {};
   try {
     const srcStream = video.captureStream
       ? video.captureStream()
       : (video.mozCaptureStream ? video.mozCaptureStream() : null);
     if (!srcStream) throw new Error('Trinh duyet khong ho tro capture video');
     const canvasStream = canvas.captureStream(30);
-    mediaStream = new MediaStream([
-      ...canvasStream.getVideoTracks(),
-      ...srcStream.getAudioTracks(),
-    ]);
+
+    const hasVoiceover  = opts.voiceoverTracks && opts.voiceoverTracks.length;
+    const hasPitchShift = !!opts.pitchedBuffer;
+
+    if (hasVoiceover || hasPitchShift) {
+      // Cần trộn nhiều nguồn âm thanh (giọng gốc/đã đổi + các track TTS)
+      // qua Web Audio API thay vì chỉ lấy track audio thô của video.
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = audioCtx.createMediaStreamDestination();
+      const pendingSources = [];
+
+      if (hasPitchShift) {
+        const src = audioCtx.createBufferSource();
+        src.buffer = opts.pitchedBuffer;
+        src.connect(dest);
+        pendingSources.push({ node: src, when: 0 });
+      } else {
+        audioCtx.createMediaStreamSource(srcStream).connect(dest);
+      }
+
+      (opts.voiceoverTracks || []).forEach((track) => {
+        const src = audioCtx.createBufferSource();
+        src.buffer = track.buffer;
+        const gain = audioCtx.createGain();
+        gain.gain.value = track.volume != null ? track.volume : 1;
+        src.connect(gain).connect(dest);
+        pendingSources.push({ node: src, when: track.startTime || 0 });
+      });
+
+      startAudioGraph = function() {
+        const t0 = audioCtx.currentTime;
+        pendingSources.forEach(({ node, when }) => node.start(t0 + Math.max(0, when)));
+      };
+
+      mediaStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks(),
+      ]);
+    } else {
+      mediaStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...srcStream.getAudioTracks(),
+      ]);
+    }
   } catch (err) {
     showToast('warning', '⚠️', 'Không thể ghi video: ' + err.message, 5000);
     return null;
@@ -705,6 +760,7 @@ function _setupExportRecorder(video, canvas, opts) {
   const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m));
   if (!mimeType) {
     showToast('warning', '⚠️', 'Trình duyệt không hỗ trợ định dạng ghi video nào.', 5000);
+    if (audioCtx) audioCtx.close();
     return null;
   }
   const ext = mimeType.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
@@ -717,13 +773,14 @@ function _setupExportRecorder(video, canvas, opts) {
     });
   } catch (err) {
     showToast('warning', '⚠️', 'Lỗi khởi tạo bộ ghi video: ' + err.message, 5000);
+    if (audioCtx) audioCtx.close();
     return null;
   }
 
   const chunks = [];
   recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
 
-  return { recorder, mimeType, ext, chunks };
+  return { recorder, mimeType, ext, chunks, audioCtx, startAudioGraph };
 }
 
 function _downloadBlob(blob, filename) {
@@ -765,8 +822,9 @@ function exportVideoReal(opts) {
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
 
-  const setup = _setupExportRecorder(video, canvas, opts);
-  if (!setup) return Promise.resolve(false);
+  return _prepareVoiceMixOpts(video, opts).then((mixOpts) => {
+  const setup = _setupExportRecorder(video, canvas, mixOpts);
+  if (!setup) return false;
   const { recorder, mimeType, ext, chunks } = setup;
 
   showToast('info', '⏺️', 'Đang ghi video (mất khoảng ' + Math.ceil(video.duration) + 's)...', 4000);
@@ -818,6 +876,7 @@ function exportVideoReal(opts) {
       video.currentTime = wasTime;
       if (wasPaused) video.pause();
       _exportRecorder = null;
+      if (setup.audioCtx) setup.audioCtx.close();
 
       if (encodeError) {
         showToast('warning', '⚠️', 'Ghi video thất bại: ' + encodeError, 6000);
@@ -835,6 +894,7 @@ function exportVideoReal(opts) {
     video.currentTime = 0;
     recorder.start(250);
     video.play().then(() => {
+      setup.startAudioGraph();
       rafId = requestAnimationFrame(drawFrame);
     }).catch((err) => {
       finish();
@@ -845,6 +905,33 @@ function exportVideoReal(opts) {
 
     video.addEventListener('ended', finish, { once: true });
   });
+  });
+}
+
+/* Nếu người dùng bật "đổi giọng", giải mã + pitch-shift audio gốc của
+   video một lần trước khi ghi (không thể làm real-time cho playbackRate
+   độc lập với cao độ bằng Web Audio API cơ bản). Trả về opts đã gắn thêm
+   pitchedBuffer + voiceoverTracks để _setupExportRecorder trộn vào. */
+function _prepareVoiceMixOpts(video, opts) {
+  const voiceoverTracks = (State.voiceoverTracks && State.voiceoverTracks.length) ? State.voiceoverTracks : null;
+
+  if (!State.voicePitchEnabled || !State.voicePitch) {
+    return Promise.resolve(Object.assign({}, opts, { voiceoverTracks }));
+  }
+
+  showToast('info', '🎚️', 'Đang xử lý đổi giọng trước khi ghi...', 3000);
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _decodeVideoAudioBuffer(video, audioCtx)
+    .then((decoded) => {
+      const shifted = pitchShiftBuffer(decoded, State.voicePitch, audioCtx);
+      audioCtx.close();
+      return Object.assign({}, opts, { pitchedBuffer: shifted, voiceoverTracks });
+    })
+    .catch((err) => {
+      audioCtx.close();
+      showToast('warning', '⚠️', 'Không đổi được giọng, xuất với giọng gốc: ' + err.message, 5000);
+      return Object.assign({}, opts, { voiceoverTracks });
+    });
 }
 
 /* Nạp một clip từ thư viện vào #main-video và chờ metadata sẵn sàng
@@ -911,7 +998,9 @@ function mergeAndExportClips(opts) {
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
 
-    const setup = _setupExportRecorder(video, canvas, opts);
+    const setup = _setupExportRecorder(video, canvas, Object.assign({}, opts, {
+      voiceoverTracks: (State.voiceoverTracks && State.voiceoverTracks.length) ? State.voiceoverTracks : null,
+    }));
     if (!setup) return false;
     const { recorder, mimeType, ext, chunks } = setup;
 
@@ -929,6 +1018,7 @@ function mergeAndExportClips(opts) {
 
       recorder.onstop = () => {
         _exportRecorder = null;
+        if (setup.audioCtx) setup.audioCtx.close();
 
         // Trả player về đúng clip + vị trí trước khi ghép, không để lại ở clip cuối cùng
         if (originalClip) {
@@ -987,6 +1077,11 @@ function mergeAndExportClips(opts) {
           }
 
           video.play().then(() => {
+            // Chỉ khởi động đồ thị âm thanh (track TTS...) một lần duy nhất,
+            // ở đúng thời điểm clip đầu tiên bắt đầu chạy — đó là mốc 0 của
+            // toàn bộ timeline ghép, các track TTS được lên lịch theo mốc này.
+            if (idx === 0) setup.startAudioGraph();
+
             // Chốt an toàn kép (xem giải thích ở _recordSegment): rAF có
             // thể bị trình duyệt tạm dừng hẳn khi tab chạy nền, khiến
             // drawFrame() không bao giờ phát hiện video.ended cho clip
@@ -1653,6 +1748,297 @@ function addAudioTrack(file) {
   `;
   list.appendChild(item);
   showToast('success','🎵',`Đã thêm audio: ${file.name}`);
+}
+
+// ──────────────────────────────────────────────
+// GIỌNG NÓI — Tạo giọng đọc (TTS) + Đổi giọng (pitch shift)
+// Cả hai đều xử lý audio thật (Web Audio API + model TTS chạy trong
+// browser), không phải mô phỏng — nối thẳng vào pipeline xuất video
+// thật đã có (_setupExportRecorder).
+// ──────────────────────────────────────────────
+
+function _waitForGlobalReady(flagName, timeoutMs) {
+  return new Promise((resolve) => {
+    if (window[flagName]) return resolve();
+    let waited = 0;
+    const iv = setInterval(() => {
+      waited += 200;
+      if (window[flagName] || waited >= timeoutMs) { clearInterval(iv); resolve(); }
+    }, 200);
+  });
+}
+
+/* AudioBuffer -> WAV Blob (PCM 16-bit) để phát qua thẻ <audio> */
+function audioBufferToWav(buffer) {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate   = buffer.sampleRate;
+  const numFrames    = buffer.length;
+  const bytesPerSample = 2;
+  const blockAlign   = numChannels * bytesPerSample;
+  const dataSize     = numFrames * blockAlign;
+
+  const bufOut = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(bufOut);
+  function writeStr(offset, str) { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); }
+
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bytesPerSample * 8, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  const channels = [];
+  for (let c = 0; c < numChannels; c++) channels.push(buffer.getChannelData(c));
+  let offset = 44;
+  for (let i = 0; i < numFrames; i++) {
+    for (let c = 0; c < numChannels; c++) {
+      const s = Math.max(-1, Math.min(1, channels[c][i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      offset += 2;
+    }
+  }
+  return new Blob([bufOut], { type: 'audio/wav' });
+}
+
+/* Float32Array (mono) + sampleRate -> AudioBuffer, dùng chung AudioContext */
+function _floatArrayToAudioBuffer(float32, sampleRate, audioCtx) {
+  const buf = audioCtx.createBuffer(1, float32.length, sampleRate);
+  buf.copyToChannel(float32, 0);
+  return buf;
+}
+
+/* ── TTS: tạo giọng đọc từ văn bản ── */
+async function generateVoiceover() {
+  const textEl = document.getElementById('tts-text');
+  const langEl = document.getElementById('tts-lang');
+  const btn    = document.getElementById('btn-tts-generate');
+  const text   = (textEl?.value || '').trim();
+  const lang   = langEl?.value || 'vi';
+
+  if (!text) {
+    showToast('warning', '⚠️', 'Vui lòng nhập văn bản muốn đọc!');
+    return;
+  }
+  if (typeof MediaRecorder === 'undefined' && typeof AudioContext === 'undefined') {
+    showToast('warning', '⚠️', 'Trình duyệt không hỗ trợ tạo giọng đọc.', 5000);
+    return;
+  }
+
+  const progressArea  = document.getElementById('tts-progress');
+  const progressFill  = document.getElementById('tts-progress-fill');
+  const progressLabel = document.getElementById('tts-progress-label');
+  function setProgress(pct, label) {
+    if (progressArea)  progressArea.style.display = 'block';
+    if (progressFill)  progressFill.style.width = pct + '%';
+    if (progressLabel) progressLabel.textContent = label;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang tạo...'; }
+  setProgress(10, '📦 Đang tải mô hình giọng đọc...');
+
+  try {
+    if (!window.HD68LoadTTS) await _waitForGlobalReady('HD68TTSReady', 8000);
+    if (!window.HD68LoadTTS) throw new Error('Chưa tải xong bộ giọng đọc, thử lại sau giây lát');
+
+    const synth = await window.HD68LoadTTS(lang, (p) => {
+      if (p && p.status === 'progress' && typeof p.progress === 'number') {
+        setProgress(10 + p.progress * 0.5, '📦 Đang tải mô hình... ' + Math.round(p.progress) + '%');
+      }
+    });
+
+    setProgress(70, '🗣️ Đang tạo giọng đọc...');
+    const output = await synth(text);
+    setProgress(95, '💾 Đang xử lý âm thanh...');
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const buffer = _floatArrayToAudioBuffer(output.audio, output.sampling_rate, audioCtx);
+    audioCtx.close();
+
+    const track = {
+      id: Date.now() + Math.random(),
+      name: text.length > 24 ? text.slice(0, 24) + '…' : text,
+      lang, buffer,
+      startTime: 0,
+      volume: 1,
+    };
+    State.voiceoverTracks.push(track);
+    renderVoiceoverTracks();
+
+    setProgress(100, '✅ Đã tạo xong giọng đọc!');
+    setTimeout(() => { if (progressArea) progressArea.style.display = 'none'; }, 1500);
+    showToast('success', '🎉', 'Đã tạo giọng đọc "' + track.name + '"!', 4000);
+    if (textEl) textEl.value = '';
+  } catch (err) {
+    showToast('warning', '⚠️', 'Lỗi tạo giọng đọc: ' + err.message, 6000);
+    if (progressArea) progressArea.style.display = 'none';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Tạo giọng đọc'; }
+  }
+}
+
+function renderVoiceoverTracks() {
+  const list = document.getElementById('voiceover-tracks-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  State.voiceoverTracks.forEach((track) => {
+    const url = URL.createObjectURL(audioBufferToWav(track.buffer));
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 8px;' +
+      'border-radius:8px;margin-bottom:5px;background:rgba(255,255,255,0.03);' +
+      'border:1px solid rgba(255,255,255,0.06);';
+    row.innerHTML = `
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;color:rgba(255,255,255,0.85);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${track.name}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.35);display:flex;gap:6px;align-items:center;margin-top:3px;">
+          <span>${track.buffer.duration.toFixed(1)}s</span>
+          <span>Bắt đầu tại</span>
+          <input type="number" step="0.1" min="0" value="${track.startTime}" data-action="start" style="width:52px;padding:2px 4px;border-radius:5px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:9px;"/>s
+        </div>
+      </div>
+      <audio controls src="${url}" style="height:26px;max-width:120px;"></audio>
+      <button data-action="delete" style="width:22px;height:22px;border-radius:5px;
+        border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.08);
+        color:rgba(239,68,68,0.7);cursor:pointer;font-size:14px;flex-shrink:0;">&times;</button>
+    `;
+    row.querySelector('[data-action="start"]')?.addEventListener('input', (e) => {
+      track.startTime = Math.max(0, parseFloat(e.target.value) || 0);
+    });
+    row.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+      URL.revokeObjectURL(url);
+      State.voiceoverTracks = State.voiceoverTracks.filter(t => t.id !== track.id);
+      renderVoiceoverTracks();
+    });
+    list.appendChild(row);
+  });
+}
+
+/* ── Đổi giọng: pitch-shift bằng granular overlap-add (WSOLA đơn giản) ──
+   Kỹ thuật thật: cắt audio thành các "hạt" (grain) nhỏ, resample từng hạt
+   theo tỉ lệ cao độ mong muốn rồi ghép chồng lấn (overlap-add) để giữ
+   nguyên thời lượng gốc trong khi đổi cao độ. */
+function pitchShiftBuffer(buffer, semitones, audioCtx) {
+  if (!semitones) return buffer;
+  const pitchRatio  = Math.pow(2, semitones / 12);
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate  = buffer.sampleRate;
+  const inLen       = buffer.length;
+  const grainSize   = 4096;
+  const hop         = Math.floor(grainSize / 4); // 75% overlap
+
+  const outBuffer = audioCtx.createBuffer(numChannels, inLen, sampleRate);
+
+  // Hann window để ghép các hạt không bị rè/click
+  const window_ = new Float32Array(grainSize);
+  for (let i = 0; i < grainSize; i++) {
+    window_[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (grainSize - 1));
+  }
+
+  for (let c = 0; c < numChannels; c++) {
+    const inData  = buffer.getChannelData(c);
+    const outData = outBuffer.getChannelData(c);
+    const norm    = new Float32Array(inLen); // để chia chuẩn hoá biên độ overlap
+
+    for (let pos = 0; pos < inLen; pos += hop) {
+      const grain = new Float32Array(grainSize);
+      // Đọc hạt từ vị trí đã resample theo pitchRatio (thay đổi cao độ)
+      for (let i = 0; i < grainSize; i++) {
+        const srcIdx = pos + i * pitchRatio;
+        const i0 = Math.floor(srcIdx);
+        const frac = srcIdx - i0;
+        const s0 = i0 < inLen ? inData[i0] : 0;
+        const s1 = (i0 + 1) < inLen ? inData[i0 + 1] : 0;
+        grain[i] = (s0 + (s1 - s0) * frac) * window_[i];
+      }
+      for (let i = 0; i < grainSize && (pos + i) < inLen; i++) {
+        outData[pos + i] += grain[i];
+        norm[pos + i]    += window_[i];
+      }
+    }
+    for (let i = 0; i < inLen; i++) {
+      if (norm[i] > 0.0001) outData[i] /= norm[i];
+    }
+  }
+
+  return outBuffer;
+}
+
+/* Giải mã audio hiện có của #main-video thành AudioBuffer (sample rate gốc) */
+async function _decodeVideoAudioBuffer(video, audioCtx) {
+  const resp = await fetch(video.src);
+  const buf  = await resp.arrayBuffer();
+  return audioCtx.decodeAudioData(buf);
+}
+
+async function previewVoiceChange() {
+  const video = document.getElementById('main-video');
+  const btn   = document.getElementById('btn-voice-preview');
+  const progressEl = document.getElementById('voice-preview-progress');
+  if (!video || !video.src || !video.duration) {
+    showToast('warning', '⚠️', 'Vui lòng thêm video trước!');
+    return;
+  }
+  const semitones = parseInt(document.getElementById('voice-pitch')?.value, 10) || 0;
+  if (!semitones) {
+    showToast('info', 'ℹ️', 'Cao độ đang là 0 — chọn 1 preset hoặc kéo thanh trượt trước khi nghe thử.', 3500);
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xử lý...'; }
+  if (progressEl) { progressEl.style.display = 'block'; progressEl.textContent = 'Đang tách và đổi giọng...'; }
+
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoded  = await _decodeVideoAudioBuffer(video, audioCtx);
+    const shifted  = pitchShiftBuffer(decoded, semitones, audioCtx);
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = shifted;
+    src.connect(audioCtx.destination);
+    src.start(0);
+    src.onended = () => { audioCtx.close(); };
+
+    showToast('success', '🔊', 'Đang phát thử giọng đã đổi...', 3000);
+  } catch (err) {
+    showToast('warning', '⚠️', 'Lỗi nghe thử: ' + err.message, 5000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔊 Nghe thử'; }
+    if (progressEl) progressEl.style.display = 'none';
+  }
+}
+
+function setupVoiceTools() {
+  document.getElementById('btn-tts-generate')?.addEventListener('click', generateVoiceover);
+
+  const pitchSlider = document.getElementById('voice-pitch');
+  const pitchVal     = document.getElementById('voice-pitch-val');
+  pitchSlider?.addEventListener('input', (e) => {
+    State.voicePitch = parseInt(e.target.value, 10) || 0;
+    if (pitchVal) pitchVal.textContent = State.voicePitch > 0 ? '+' + State.voicePitch : String(State.voicePitch);
+  });
+
+  document.querySelectorAll('.voice-preset-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const val = parseInt(btn.getAttribute('data-pitch'), 10) || 0;
+      State.voicePitch = val;
+      if (pitchSlider) pitchSlider.value = val;
+      if (pitchVal) pitchVal.textContent = val > 0 ? '+' + val : String(val);
+    });
+  });
+
+  document.getElementById('voice-change-enable')?.addEventListener('change', (e) => {
+    State.voicePitchEnabled = e.target.checked;
+  });
+
+  document.getElementById('btn-voice-preview')?.addEventListener('click', previewVoiceChange);
 }
 
 // ──────────────────────────────────────────────
