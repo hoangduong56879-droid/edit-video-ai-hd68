@@ -237,11 +237,21 @@ function handleVideoFiles(files) {
 }
 
 function addClipToLibrary(clip) {
-  // Create temp video to get duration
+  // Create temp video to get duration. Safari (iOS) không bắn sự kiện
+  // loadedmetadata một cách đáng tin cậy cho <video> chưa gắn vào DOM,
+  // đặc biệt với blob URL — nên phải append (ẩn, off-screen) rồi mới set src.
   const temp = document.createElement('video');
-  temp.src = clip.src;
-  temp.addEventListener('loadedmetadata', () => {
-    clip.duration = temp.duration;
+  temp.playsInline = true;
+  temp.muted = true;
+  temp.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
+  document.body.appendChild(temp);
+
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    clip.duration = temp.duration || 0;
+    temp.remove();
 
     // Add to state
     State.clips.push({ ...clip, start: getTotalDuration() });
@@ -259,7 +269,22 @@ function addClipToLibrary(clip) {
 
     updateTimeline();
     showToast('success', '🎬', `Đã thêm: ${clip.name}`);
+  };
+
+  temp.addEventListener('loadedmetadata', finish);
+  temp.addEventListener('error', () => {
+    if (settled) return;
+    settled = true;
+    temp.remove();
+    showToast('error', '⚠️', `Không đọc được video: ${clip.name}`);
   });
+  // Fallback: nếu sau 8s vẫn không có sự kiện nào (một số trình duyệt mobile
+  // im lặng không bắn loadedmetadata với vài định dạng/blob), vẫn thêm clip
+  // thay vì để UI treo vô thời hạn.
+  setTimeout(finish, 8000);
+
+  temp.src = clip.src;
+  temp.load();
 }
 
 function addMediaItem(clip) {
@@ -270,12 +295,16 @@ function addMediaItem(clip) {
   item.className = 'media-item';
   item.dataset.id = clip.id;
 
-  // Thumbnail via canvas
+  // Thumbnail via canvas — video tạm phải gắn vào DOM (ẩn) để Safari iOS
+  // bắn sự kiện loadeddata/seeked đáng tin cậy với blob URL.
   const canvas = document.createElement('canvas');
   canvas.width = 160; canvas.height = 90;
   const ctx = canvas.getContext('2d');
   const vid = document.createElement('video');
-  vid.src = clip.src;
+  vid.playsInline = true;
+  vid.muted = true;
+  vid.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
+  document.body.appendChild(vid);
   vid.addEventListener('loadeddata', () => {
     vid.currentTime = vid.duration * 0.1;
   });
@@ -284,7 +313,11 @@ function addMediaItem(clip) {
     item.style.backgroundImage = `url(${canvas.toDataURL()})`;
     item.style.backgroundSize = 'cover';
     item.style.backgroundPosition = 'center';
+    vid.remove();
   });
+  vid.addEventListener('error', () => vid.remove());
+  vid.src = clip.src;
+  vid.load();
 
   const dur = clip.duration ? Effects.formatTime(clip.duration) : '--:--';
   item.innerHTML = `
