@@ -26,6 +26,7 @@ const State = {
   voicePitchEnabled: false,
   currentStep: 1,         // 1 Tải lên → 2 Xem & chỉnh → 3 Render → 4 Hoàn tất
   exportCompleted: false, // mở khoá bước 4 sau khi xuất video thành công lần đầu
+  lastExport: null,       // { blob, filename, ext, size, duration } — giữ lại lần xuất gần nhất để tải lại ở bước 4
 };
 
 // ──────────────────────────────────────────────
@@ -212,7 +213,16 @@ function setupStepper() {
   document.getElementById('btn-step4-new')?.addEventListener('click', () => {
     clearAllMedia();
     State.exportCompleted = false;
+    State.lastExport = null;
     goToStep(1);
+  });
+  document.getElementById('btn-step4-redownload')?.addEventListener('click', () => {
+    if (State.lastExport) {
+      _downloadBlob(State.lastExport.blob, State.lastExport.filename + '.' + State.lastExport.ext);
+      showToast('success', '⬇️', 'Đang tải lại video...', 2000);
+    } else {
+      showToast('warning', '⚠️', 'Chưa có video nào được xuất.', 3000);
+    }
   });
 }
 
@@ -1001,7 +1011,9 @@ function exportVideoReal(opts) {
         return;
       }
 
-      _downloadBlob(new Blob(chunks, { type: mimeType }), filename + '.' + ext);
+      const blob = new Blob(chunks, { type: mimeType });
+      State.lastExport = { blob, filename, ext, size: blob.size, duration: video.duration };
+      _downloadBlob(blob, filename + '.' + ext);
       onProgress(100);
       showToast('success', '🎉', 'Đã tải "' + filename + '.' + ext + '" về thiết bị!', 5000);
       resolve(true);
@@ -2319,14 +2331,6 @@ function setupExportPanel() {
   });
 
   document.getElementById('btn-start-export')?.addEventListener('click', startExport);
-
-  // Share buttons
-  document.querySelectorAll('.share-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const platform = btn.id.replace('share-','');
-      showToast('info','📤',`Chuẩn bị chia sẻ lên ${platform.toUpperCase()}...`);
-    });
-  });
 }
 
 function updateExportPanel() {
@@ -2379,6 +2383,7 @@ function startExport() {
     if (ok) {
       addExportHistory(filename);
       State.exportCompleted = true;
+      updateStep4Summary();
       goToStep(4);
     }
   });
@@ -2392,18 +2397,55 @@ function addExportHistory(name) {
   const item = document.createElement('div');
   item.className = 'history-item';
   const quality = document.querySelector('.quality-card.active')?.querySelector('.qcard-label')?.textContent || '1080p';
-  const format = document.querySelector('.format-opt.active')?.textContent || 'MP4';
+  // Đuôi file thật do MediaRecorder thương lượng (thường .webm), không
+  // phải lựa chọn định dạng trên UI — tránh hiện sai đuôi so với file
+  // vừa tải về ngay phía trên.
+  const ext = (State.lastExport && State.lastExport.filename === name) ? State.lastExport.ext : 'mp4';
   item.innerHTML = `
     <div class="history-item-thumb"></div>
     <div class="history-item-info">
-      <div class="history-item-name">${name}.${format.toLowerCase()}</div>
+      <div class="history-item-name">${name}.${ext}</div>
       <div class="history-item-meta">${quality} • ${new Date().toLocaleTimeString('vi-VN')}</div>
     </div>
-    <div class="history-item-dl">↓</div>
+    <button class="history-item-dl" title="Tải lại video này">↓</button>
   `;
   history.insertBefore(item, history.firstChild);
 
-  State.exportHistory.push({ name, quality, format, time: new Date() });
+  // Chỉ blob của lần xuất GẦN NHẤT còn được giữ trong bộ nhớ (giữ hết mọi
+  // lần xuất trong 1 phiên sẽ tốn bộ nhớ không cần thiết với file video) —
+  // các mục cũ hơn trong lịch sử báo rõ là cần xuất lại thay vì im lặng
+  // không làm gì (nút tải lại trước đây không có handler nào cả).
+  item.querySelector('.history-item-dl').addEventListener('click', () => {
+    if (State.lastExport && State.lastExport.filename === name) {
+      _downloadBlob(State.lastExport.blob, State.lastExport.filename + '.' + State.lastExport.ext);
+      showToast('success', '⬇️', 'Đang tải lại video...', 2000);
+    } else {
+      showToast('warning', '⚠️', 'Video này không còn trong bộ nhớ tạm — vui lòng xuất lại.', 3500);
+    }
+  });
+
+  State.exportHistory.push({ name, quality, ext, time: new Date() });
+}
+
+/* Điền tóm tắt kết quả xuất (tên file/dung lượng/thời lượng) vào bước 4
+   từ State.lastExport, gọi ngay khi xuất thành công. */
+function updateStep4Summary() {
+  const exp = State.lastExport;
+  if (!exp) return;
+  const nameEl = document.getElementById('step4-sum-name');
+  const sizeEl = document.getElementById('step4-sum-size');
+  const durEl  = document.getElementById('step4-sum-duration');
+  if (nameEl) nameEl.textContent = exp.filename + '.' + exp.ext;
+  if (sizeEl) sizeEl.textContent = _formatBytes(exp.size);
+  if (durEl)  durEl.textContent  = Effects.formatTime(exp.duration);
+}
+
+function _formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let n = bytes, i = 0;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return n.toFixed(i > 0 && n < 10 ? 1 : 0) + ' ' + units[i];
 }
 
 // ──────────────────────────────────────────────
