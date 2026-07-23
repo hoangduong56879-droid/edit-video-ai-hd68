@@ -197,6 +197,37 @@ input[type="range"] { -webkit-appearance: none; appearance: none; }
 .nav-tab.active { background: rgba(124,58,237,0.25); color: var(--purple-light); }
 .nav-tab.active svg { color: var(--purple-light); }
 
+/* Stepper: Bước 1 Tải lên → 2 Xem & chỉnh → 3 Render → 4 Hoàn tất */
+.hd68-stepper { display: flex; align-items: center; gap: 8px; }
+.stepper-node {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 10px;
+  transition: all var(--t-fast);
+}
+.stepper-node:disabled { cursor: not-allowed; opacity: 0.4; }
+.stepper-node:not(:disabled):hover { background: rgba(255,255,255,0.06); }
+.stepper-dot {
+  position: relative;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid var(--border-light);
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  transition: all var(--t-fast);
+}
+.stepper-check { display: none; }
+.stepper-node.active .stepper-dot {
+  background: var(--grad-primary); border-color: transparent; color: #fff;
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.2);
+}
+.stepper-node.completed .stepper-dot { background: var(--grad-green); border-color: transparent; }
+.stepper-node.completed .stepper-num { display: none; }
+.stepper-node.completed .stepper-check { display: block; }
+.stepper-text { font-size: 11px; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+.stepper-node.active .stepper-text { color: var(--text-primary); }
+.stepper-node.completed .stepper-text { color: var(--text-secondary); }
+.stepper-line { width: 24px; height: 1.5px; background: var(--border-light); }
+
 .nav-right { display: flex; align-items: center; gap: 8px; min-width: 260px; justify-content: flex-end; }
 .btn-icon {
   width: 32px; height: 32px; border-radius: 8px;
@@ -1128,6 +1159,52 @@ input[type="range"] { -webkit-appearance: none; appearance: none; }
 .share-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--border-light); color: var(--text-primary); transform: translateY(-1px); }
 
 /* ====================================
+   STEP 2 SUB-NAV (Chỉnh sửa / Màu sắc / Âm thanh)
+   ==================================== */
+.step2-subnav {
+  flex-shrink: 0;
+  display: flex; gap: 4px; padding: 8px 16px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+}
+.step2-subnav-btn {
+  padding: 6px 16px; border-radius: 8px;
+  font-size: 12px; font-weight: 500; color: var(--text-muted);
+  transition: all var(--t-fast);
+}
+.step2-subnav-btn:hover { color: var(--text-secondary); background: rgba(255,255,255,0.06); }
+.step2-subnav-btn.active { background: rgba(124,58,237,0.25); color: var(--purple-light); }
+
+/* ====================================
+   STEP 4 — HOÀN TẤT
+   ==================================== */
+.step4-screen { align-items: center; justify-content: center; }
+.step4-content {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  text-align: center; max-width: 420px; padding: 32px; margin: 0 auto;
+}
+.step4-icon { font-size: 56px; line-height: 1; }
+.step4-content h2 { font-family: var(--font-display); font-size: 22px; }
+.step4-content p { color: var(--text-secondary); font-size: 13px; }
+.step4-actions { display: flex; gap: 12px; margin-top: 12px; }
+
+.btn-primary {
+  padding: 10px 24px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; color: #fff;
+  background: var(--grad-primary);
+  box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+  transition: all var(--t-fast);
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-secondary {
+  padding: 10px 24px; border-radius: 10px;
+  font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+  transition: all var(--t-fast);
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+/* ====================================
    TOAST NOTIFICATIONS
    ==================================== */
 .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9000; display: flex; flex-direction: column; gap: 10px; }
@@ -1520,9 +1597,9 @@ input[type="range"] { -webkit-appearance: none; appearance: none; }
   }
   .mob-ai-run:active { background: rgba(124,58,237,0.4); }
 
-  /* Mobile AI Progress overlay */
+  /* Mobile AI Progress overlay (display:none mặc định đặt ngoài @media
+     này, xem khối .mob-ai-progress ở phần MOBILE — VIDEO QUICK ACTIONS bên dưới) */
   .mob-ai-progress {
-    display: none;
     position: fixed; inset: 0; z-index: 300;
     background: rgba(7,7,17,0.92);
     backdrop-filter: blur(20px);
@@ -1678,6 +1755,11 @@ input[type="range"] { -webkit-appearance: none; appearance: none; }
 /* ============================================================
    MOBILE — VIDEO QUICK ACTIONS (overlay on preview)
    ============================================================ */
+/* Mặc định ẩn ngoài breakpoint mobile — trước đây chỉ set display bên
+   trong @media nên ở màn hình desktop nó hiện ra thành icon/chữ trần
+   không định dạng ở góc dưới trái trang. */
+.mob-quick-actions,
+.mob-ai-progress { display: none; }
 @media (max-width: 640px) {
   .mob-quick-actions {
     position: absolute;

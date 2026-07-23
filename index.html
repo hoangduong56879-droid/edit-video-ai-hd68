@@ -77,22 +77,25 @@
         <div class="nav-project-name" id="project-name-display" contenteditable="true">Dự án chưa đặt tên</div>
       </div>
       <div class="nav-center">
-        <nav class="nav-tabs">
-          <button class="nav-tab active" data-tab="editor" id="tab-editor">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M3.5 3A1.5 1.5 0 002 4.5v11A1.5 1.5 0 003.5 17h13a1.5 1.5 0 001.5-1.5v-11A1.5 1.5 0 0016.5 3h-13zm0 1.5h13v11h-13v-11z"/><path d="M7 7.5l5 2.5-5 2.5V7.5z"/></svg>
-            Chỉnh sửa
+        <nav class="hd68-stepper" id="hd68-stepper">
+          <button class="stepper-node active" data-step="1" id="step-btn-1">
+            <span class="stepper-dot"><span class="stepper-num">1</span><span class="stepper-check">✓</span></span>
+            <span class="stepper-text">Tải lên</span>
           </button>
-          <button class="nav-tab" data-tab="color" id="tab-color">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="1.5"/></svg>
-            Màu sắc
+          <span class="stepper-line"></span>
+          <button class="stepper-node" data-step="2" id="step-btn-2" disabled>
+            <span class="stepper-dot"><span class="stepper-num">2</span><span class="stepper-check">✓</span></span>
+            <span class="stepper-text">Xem &amp; chỉnh</span>
           </button>
-          <button class="nav-tab" data-tab="audio" id="tab-audio">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"/></svg>
-            Âm thanh
+          <span class="stepper-line"></span>
+          <button class="stepper-node" data-step="3" id="step-btn-3" disabled>
+            <span class="stepper-dot"><span class="stepper-num">3</span><span class="stepper-check">✓</span></span>
+            <span class="stepper-text">Render</span>
           </button>
-          <button class="nav-tab" data-tab="export" id="tab-export">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-            Xuất video
+          <span class="stepper-line"></span>
+          <button class="stepper-node" data-step="4" id="step-btn-4" disabled>
+            <span class="stepper-dot"><span class="stepper-num">4</span><span class="stepper-check">✓</span></span>
+            <span class="stepper-text">Hoàn tất</span>
           </button>
         </nav>
       </div>
@@ -114,6 +117,15 @@
         </button>
       </div>
     </header>
+
+    <!-- Sub-nav nội bộ của Bước 2 (Xem & chỉnh sửa) — chuyển giữa Chỉnh sửa/Màu sắc/Âm thanh
+         mà không rời khỏi bước 2. Ẩn ở các bước khác. Sẽ được hợp nhất thành
+         6 sub-tab (Media/AI/Effects/Text/Color/Audio) ở giai đoạn tái cấu trúc tiếp theo. -->
+    <nav class="step2-subnav hidden" id="step2-subnav">
+      <button class="step2-subnav-btn active" data-panel="editor" id="s2tab-editor">Chỉnh sửa</button>
+      <button class="step2-subnav-btn" data-panel="color" id="s2tab-color">Màu sắc</button>
+      <button class="step2-subnav-btn" data-panel="audio" id="s2tab-audio">Âm thanh</button>
+    </nav>
 
     <!-- ===== EDITOR TAB ===== -->
     <main class="app-body" id="panel-editor">
@@ -977,6 +989,19 @@
               TikTok
             </button>
           </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== BƯỚC 4: HOÀN TẤT (placeholder — nội dung đầy đủ sẽ bổ sung sau) ===== -->
+    <main class="app-body hidden step4-screen" id="step-screen-4">
+      <div class="step4-content">
+        <div class="step4-icon">🎉</div>
+        <h2>Xuất video thành công!</h2>
+        <p>Video của bạn đã được tải về thiết bị.</p>
+        <div class="step4-actions">
+          <button class="btn-primary" id="btn-step4-edit">Chỉnh sửa tiếp</button>
+          <button class="btn-secondary" id="btn-step4-new">Dự án mới</button>
         </div>
       </div>
     </main>

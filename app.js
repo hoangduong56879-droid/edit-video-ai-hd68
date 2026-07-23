@@ -24,6 +24,8 @@ const State = {
   voiceoverTracks: [],   // { id, name, lang, buffer (AudioBuffer), startTime, volume }
   voicePitch: 0,         // bán cung dịch cao độ cho giọng gốc của video khi xuất
   voicePitchEnabled: false,
+  currentStep: 1,         // 1 Tải lên → 2 Xem & chỉnh → 3 Render → 4 Hoàn tất
+  exportCompleted: false, // mở khoá bước 4 sau khi xuất video thành công lần đầu
 };
 
 // ──────────────────────────────────────────────
@@ -96,7 +98,8 @@ function hideSplash() {
 // INIT APP
 // ──────────────────────────────────────────────
 function initApp() {
-  setupNavTabs();
+  setupStepper();
+  setupStep2SubNav();
   setupPanelTabs();
   setupFileInput();
   setupDragDrop();
@@ -135,32 +138,101 @@ function initApp() {
 }
 
 // ──────────────────────────────────────────────
-// NAV TABS
+// STEPPER — Bước 1 Tải lên → 2 Xem & chỉnh → 3 Render → 4 Hoàn tất
 // ──────────────────────────────────────────────
-function setupNavTabs() {
-  const tabs = document.querySelectorAll('.nav-tab');
+
+/* Bước 2/3 chỉ mở khi đã có ít nhất 1 clip; bước 4 chỉ mở sau khi đã xuất
+   video thành công ít nhất 1 lần. Quay lại bước trước luôn được phép. */
+function canGoToStep(n) {
+  if (n === 2 || n === 3) return State.clips.length > 0;
+  if (n === 4) return State.exportCompleted === true;
+  return true;
+}
+
+function goToStep(n) {
+  if (n !== 1 && !canGoToStep(n)) {
+    const msgs = {
+      2: 'Vui lòng thêm video trước khi chỉnh sửa!',
+      3: 'Vui lòng thêm video trước khi render!',
+      4: 'Chưa có video nào được xuất!',
+    };
+    showToast('warning', '⚠️', msgs[n] || 'Chưa thể chuyển bước này', 3000);
+    return;
+  }
+
+  State.currentStep = n;
+  updateStepperUI();
+
+  const editor  = document.getElementById('panel-editor');
+  const color   = document.getElementById('panel-color');
+  const audio   = document.getElementById('panel-audio');
+  const exportP = document.getElementById('panel-export');
+  const done    = document.getElementById('step-screen-4');
+  const subnav  = document.getElementById('step2-subnav');
+
+  [editor, color, audio, exportP, done].forEach(el => el && el.classList.add('hidden'));
+
+  if (n === 1) {
+    subnav?.classList.add('hidden');
+    editor?.classList.remove('hidden');
+    switchToPanelTab('media');
+  } else if (n === 2) {
+    subnav?.classList.remove('hidden');
+    const activeBtn = subnav?.querySelector('.step2-subnav-btn.active') || subnav?.querySelector('.step2-subnav-btn');
+    const key = activeBtn?.dataset.panel || 'editor';
+    document.getElementById(`panel-${key}`)?.classList.remove('hidden');
+  } else if (n === 3) {
+    subnav?.classList.add('hidden');
+    exportP?.classList.remove('hidden');
+    updateExportPanel();
+  } else if (n === 4) {
+    subnav?.classList.add('hidden');
+    done?.classList.remove('hidden');
+  }
+}
+
+function updateStepperUI() {
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`step-btn-${i}`);
+    if (!btn) continue;
+    btn.classList.toggle('active', State.currentStep === i);
+    btn.classList.toggle('completed', i < State.currentStep);
+    btn.disabled = i !== 1 && !canGoToStep(i);
+  }
+}
+
+function setupStepper() {
+  document.querySelectorAll('.stepper-node').forEach(btn => {
+    btn.addEventListener('click', () => goToStep(parseInt(btn.dataset.step, 10)));
+  });
+  updateStepperUI();
+
+  document.getElementById('btn-export-quick')?.addEventListener('click', () => goToStep(3));
+  document.getElementById('btn-step4-edit')?.addEventListener('click', () => goToStep(2));
+  document.getElementById('btn-step4-new')?.addEventListener('click', () => {
+    clearAllMedia();
+    State.exportCompleted = false;
+    goToStep(1);
+  });
+}
+
+/* Sub-nav nội bộ của bước 2 (Chỉnh sửa/Màu sắc/Âm thanh) — chuyển panel mà
+   không rời khỏi bước 2. Tạm thời tái dùng 3 panel cũ nguyên vẹn; sẽ hợp
+   nhất thành sub-tab chung trong đợt tái cấu trúc bước 2 tiếp theo. */
+function setupStep2SubNav() {
+  const btns = document.querySelectorAll('.step2-subnav-btn');
   const panels = {
     editor: document.getElementById('panel-editor'),
     color:  document.getElementById('panel-color'),
     audio:  document.getElementById('panel-audio'),
-    export: document.getElementById('panel-export'),
   };
-
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const key = tab.dataset.tab;
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
       Object.values(panels).forEach(p => p && p.classList.add('hidden'));
-      if (panels[key]) panels[key].classList.remove('hidden');
-
-      // Special actions on tab switch
-      if (key === 'export') updateExportPanel();
+      panels[btn.dataset.panel]?.classList.remove('hidden');
     });
-  });
-
-  document.getElementById('btn-export-quick')?.addEventListener('click', () => {
-    document.getElementById('tab-export')?.click();
   });
 }
 
@@ -271,6 +343,7 @@ function addClipToLibrary(clip) {
     // không phải tự bấm thêm tab nào nữa.
     if (State.clips.length === 1) {
       loadClipIntoPlayer(clip);
+      goToStep(2);
       switchToPanelTab('ai');
     }
 
@@ -2276,7 +2349,11 @@ function startExport() {
     btn.disabled = false;
     btn.innerHTML = `<svg viewBox="0 0 20 20" fill="currentColor" width="20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> XUẤT VIDEO HD68`;
     if (stage) stage.textContent = ok ? '✅ Xuất hoàn thành!' : 'Xuất thất bại';
-    if (ok) addExportHistory(filename);
+    if (ok) {
+      addExportHistory(filename);
+      State.exportCompleted = true;
+      goToStep(4);
+    }
   });
 }
 
