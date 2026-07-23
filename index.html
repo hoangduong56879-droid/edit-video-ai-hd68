@@ -976,6 +976,25 @@
               <svg viewBox="0 0 24 24" fill="currentColor" width="16"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.2 8.2 0 004.79 1.52V6.75a4.85 4.85 0 01-1.02-.06z"/></svg>
               TikTok
             </button>
+            <button class="share-btn" style="--sc:#26a5e4" id="share-telegram">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16"><path d="M23.91 3.79L20.3 20.84c-.25 1.21-.98 1.5-2 .94l-5.5-4.07-2.66 2.57c-.3.3-.55.55-1.11.55l.4-5.66 10.31-9.32c.45-.4-.1-.62-.68-.23L7.72 13.12l-5.53-1.73c-1.2-.38-1.23-1.2.25-1.77L22.15 2.27c1-.38 1.87.24 1.76 1.52z"/></svg>
+              Telegram
+            </button>
+          </div>
+
+          <div id="telegram-settings" style="margin-top:8px;padding:8px;
+            border-radius:8px;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:5px;">
+              Bot Token &amp; Chat ID lưu riêng trong trình duyệt của bạn, không gửi lên GitHub/Vercel.
+            </div>
+            <input type="password" id="telegram-bot-token" placeholder="Bot Token (từ @BotFather)" style="
+              width:100%;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.3);
+              border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:11px;
+              font-family:monospace;box-sizing:border-box;margin-bottom:6px;"/>
+            <input type="text" id="telegram-chat-id" placeholder="Chat ID (từ @userinfobot)" style="
+              width:100%;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,0.3);
+              border:1px solid rgba(255,255,255,0.12);color:#fff;font-size:11px;
+              font-family:monospace;box-sizing:border-box;"/>
           </div>
         </div>
       </div>

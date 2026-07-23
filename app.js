@@ -24,6 +24,8 @@ const State = {
   voiceoverTracks: [],   // { id, name, lang, buffer (AudioBuffer), startTime, volume }
   voicePitch: 0,         // bán cung dịch cao độ cho giọng gốc của video khi xuất
   voicePitchEnabled: false,
+  lastExportBlob: null,
+  lastExportFilename: '',
 };
 
 // ──────────────────────────────────────────────
@@ -884,7 +886,10 @@ function exportVideoReal(opts) {
         return;
       }
 
-      _downloadBlob(new Blob(chunks, { type: mimeType }), filename + '.' + ext);
+      const finalBlob = new Blob(chunks, { type: mimeType });
+      State.lastExportBlob = finalBlob;
+      State.lastExportFilename = filename + '.' + ext;
+      _downloadBlob(finalBlob, filename + '.' + ext);
       onProgress(100);
       showToast('success', '🎉', 'Đã tải "' + filename + '.' + ext + '" về thiết bị!', 5000);
       resolve(true);
@@ -2178,11 +2183,69 @@ function setupExportPanel() {
 
   // Share buttons
   document.querySelectorAll('.share-btn').forEach(btn => {
+    if (btn.id === 'share-telegram') {
+      btn.addEventListener('click', sendViaTelegram);
+      return;
+    }
     btn.addEventListener('click', () => {
       const platform = btn.id.replace('share-','');
       showToast('info','📤',`Chuẩn bị chia sẻ lên ${platform.toUpperCase()}...`);
     });
   });
+
+  // Telegram Bot Token / Chat ID: khôi phục từ localStorage và tự lưu khi đổi
+  const tgTokenEl  = document.getElementById('telegram-bot-token');
+  const tgChatIdEl = document.getElementById('telegram-chat-id');
+  if (tgTokenEl)  tgTokenEl.value  = localStorage.getItem(TELEGRAM_BOT_TOKEN_STORAGE) || '';
+  if (tgChatIdEl) tgChatIdEl.value = localStorage.getItem(TELEGRAM_CHAT_ID_STORAGE) || '';
+  tgTokenEl?.addEventListener('change',  (e) => localStorage.setItem(TELEGRAM_BOT_TOKEN_STORAGE, e.target.value.trim()));
+  tgChatIdEl?.addEventListener('change', (e) => localStorage.setItem(TELEGRAM_CHAT_ID_STORAGE, e.target.value.trim()));
+}
+
+// ──────────────────────────────────────────────
+// GỬI VIDEO QUA TELEGRAM
+// ──────────────────────────────────────────────
+const TELEGRAM_BOT_TOKEN_STORAGE = 'hd68_telegram_bot_token';
+const TELEGRAM_CHAT_ID_STORAGE   = 'hd68_telegram_chat_id';
+
+function sendViaTelegram() {
+  const botToken = document.getElementById('telegram-bot-token')?.value.trim()
+    || localStorage.getItem(TELEGRAM_BOT_TOKEN_STORAGE) || '';
+  const chatId = document.getElementById('telegram-chat-id')?.value.trim()
+    || localStorage.getItem(TELEGRAM_CHAT_ID_STORAGE) || '';
+
+  if (!botToken || !chatId) {
+    showToast('warning', '⚠️', 'Vui lòng nhập Bot Token và Chat ID Telegram!', 4000);
+    return;
+  }
+  if (!State.lastExportBlob) {
+    showToast('warning', '⚠️', 'Vui lòng xuất video trước khi gửi qua Telegram!', 4000);
+    return;
+  }
+
+  const btn = document.getElementById('share-telegram');
+  if (btn) btn.disabled = true;
+  showToast('info', '📨', 'Đang gửi video lên Telegram...', 4000);
+
+  const form = new FormData();
+  form.append('chat_id', chatId);
+  form.append('video', State.lastExportBlob, State.lastExportFilename || 'HD68_output.webm');
+  form.append('caption', State.lastExportFilename || '');
+
+  fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, { method: 'POST', body: form })
+    .then((res) => res.json())
+    .then((data) => {
+      if (btn) btn.disabled = false;
+      if (data.ok) {
+        showToast('success', '🎉', 'Đã gửi video lên Telegram!', 5000);
+      } else {
+        showToast('warning', '⚠️', 'Telegram báo lỗi: ' + (data.description || 'không xác định'), 6000);
+      }
+    })
+    .catch((err) => {
+      if (btn) btn.disabled = false;
+      showToast('warning', '⚠️', 'Gửi Telegram thất bại: ' + err.message, 6000);
+    });
 }
 
 function updateExportPanel() {
