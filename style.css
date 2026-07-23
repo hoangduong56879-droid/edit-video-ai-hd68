@@ -580,6 +580,8 @@ input[type="range"] { -webkit-appearance: none; appearance: none; }
   cursor: pointer; transition: all var(--t-fast);
 }
 .text-preset:hover { transform: scale(1.03); }
+.text-preset.active .tp-preview { outline: 2px solid var(--purple); outline-offset: 2px; }
+.text-preset.active span { color: var(--purple-light); }
 .tp-preview {
   width: 100%; aspect-ratio: 16/7; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;

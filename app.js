@@ -1476,21 +1476,43 @@ function setupEffectsPanel() {
       showToast('info','⚡',`Tốc độ: ${speed}x`);
     });
   });
-
-  document.querySelectorAll('.transition-item').forEach(item => {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.transition-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      showToast('info','🎞️',`Transition: ${item.textContent}`);
-    });
-  });
 }
 
 // ──────────────────────────────────────────────
 // TEXT PANEL
 // ──────────────────────────────────────────────
+/* Preset kiểu chữ — bấm vào để tự điền sẵn font/cỡ/màu/bóng đổ tương ứng
+   vào ô chỉnh sửa văn bản, người dùng chỉ cần gõ nội dung rồi bấm "Thêm". */
+const TEXT_PRESETS = {
+  'title':       { font: 'Space Grotesk', size: 64, color: '#ffffff', shadow: '#7c3aed' },
+  'subtitle':    { font: 'Inter',         size: 28, color: '#ffffff', shadow: '#000000' },
+  'lower-third': { font: 'Inter',         size: 22, color: '#ffffff', shadow: '#06b6d4' },
+  'neon-text':   { font: 'Space Grotesk', size: 48, color: '#22d3ee', shadow: '#ec4899' },
+};
+
 function setupTextPanel() {
   document.getElementById('btn-add-text')?.addEventListener('click', addTextOverlay);
+
+  document.querySelectorAll('.text-preset[data-style]').forEach(item => {
+    item.addEventListener('click', () => {
+      const preset = TEXT_PRESETS[item.dataset.style];
+      if (!preset) return;
+
+      document.querySelectorAll('.text-preset').forEach(p => p.classList.remove('active'));
+      item.classList.add('active');
+
+      const fontSel   = document.getElementById('font-select');
+      const sizeInp   = document.getElementById('font-size');
+      const colorInp  = document.getElementById('font-color');
+      const shadowInp = document.getElementById('font-shadow');
+      if (fontSel)   fontSel.value   = preset.font;
+      if (sizeInp)   sizeInp.value   = preset.size;
+      if (colorInp)  colorInp.value  = preset.color;
+      if (shadowInp) shadowInp.value = preset.shadow;
+
+      showToast('info', '✍️', `Đã chọn kiểu chữ: ${item.querySelector('span')?.textContent || ''}`, 1800);
+    });
+  });
 }
 
 function addTextOverlay() {
