@@ -237,9 +237,14 @@ function handleVideoFiles(files) {
 }
 
 function addClipToLibrary(clip) {
-  // Create temp video to get duration. Safari (iOS) không bắn sự kiện
-  // loadedmetadata một cách đáng tin cậy cho <video> chưa gắn vào DOM,
-  // đặc biệt với blob URL — nên phải append (ẩn, off-screen) rồi mới set src.
+  // Một thẻ <video> tạm DUY NHẤT để đọc cả thời lượng lẫn khung hình thumbnail.
+  // Trước đây tạo 2 video riêng (1 đọc duration, 1 tạo thumbnail) cộng thêm
+  // video player chính = 3 video cùng giải mã 1 file cùng lúc — trên máy tính
+  // không vấn đề gì, nhưng trên Safari/iOS mỗi video đang giải mã tốn một
+  // vùng bộ nhớ decoder riêng, và video quay trực tiếp từ điện thoại thường
+  // rất nặng (vài trăm MB, 4K) nên dễ vượt giới hạn bộ nhớ trang và bị Safari
+  // tự kill/reload tab ngay khi thêm video. Gộp còn 1 video tạm, dọn dẹp
+  // (remove + giải phóng src) xong mới bắt đầu decode video player chính.
   const temp = document.createElement('video');
   temp.playsInline = true;
   temp.muted = true;
@@ -247,17 +252,19 @@ function addClipToLibrary(clip) {
   document.body.appendChild(temp);
 
   let settled = false;
-  const finish = () => {
+  const finish = (thumbnailUrl) => {
     if (settled) return;
     settled = true;
     clip.duration = temp.duration || 0;
+    temp.removeAttribute('src');
+    temp.load();
     temp.remove();
 
     // Add to state
     State.clips.push({ ...clip, start: getTotalDuration() });
 
     // Add to media grid
-    addMediaItem(clip);
+    addMediaItem(clip, thumbnailUrl);
 
     // If first clip, load into player and jump straight to editing —
     // người dùng chỉ cần thêm video là vào thẳng khu vực chỉnh sửa,
@@ -271,7 +278,25 @@ function addClipToLibrary(clip) {
     showToast('success', '🎬', `Đã thêm: ${clip.name}`);
   };
 
-  temp.addEventListener('loadedmetadata', finish);
+  const captureThumbnail = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 160; canvas.height = 90;
+      canvas.getContext('2d').drawImage(temp, 0, 0, 160, 90);
+      finish(canvas.toDataURL());
+    } catch (e) {
+      finish(null);
+    }
+  };
+
+  temp.addEventListener('loadedmetadata', () => {
+    if (temp.duration && isFinite(temp.duration)) {
+      temp.addEventListener('seeked', captureThumbnail, { once: true });
+      temp.currentTime = temp.duration * 0.1;
+    } else {
+      captureThumbnail();
+    }
+  }, { once: true });
   temp.addEventListener('error', () => {
     if (settled) return;
     settled = true;
@@ -281,13 +306,13 @@ function addClipToLibrary(clip) {
   // Fallback: nếu sau 8s vẫn không có sự kiện nào (một số trình duyệt mobile
   // im lặng không bắn loadedmetadata với vài định dạng/blob), vẫn thêm clip
   // thay vì để UI treo vô thời hạn.
-  setTimeout(finish, 8000);
+  setTimeout(() => finish(null), 8000);
 
   temp.src = clip.src;
   temp.load();
 }
 
-function addMediaItem(clip) {
+function addMediaItem(clip, thumbnailUrl) {
   const grid = document.getElementById('media-grid');
   if (!grid) return;
 
@@ -295,29 +320,15 @@ function addMediaItem(clip) {
   item.className = 'media-item';
   item.dataset.id = clip.id;
 
-  // Thumbnail via canvas — video tạm phải gắn vào DOM (ẩn) để Safari iOS
-  // bắn sự kiện loadeddata/seeked đáng tin cậy với blob URL.
-  const canvas = document.createElement('canvas');
-  canvas.width = 160; canvas.height = 90;
-  const ctx = canvas.getContext('2d');
-  const vid = document.createElement('video');
-  vid.playsInline = true;
-  vid.muted = true;
-  vid.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
-  document.body.appendChild(vid);
-  vid.addEventListener('loadeddata', () => {
-    vid.currentTime = vid.duration * 0.1;
-  });
-  vid.addEventListener('seeked', () => {
-    ctx.drawImage(vid, 0, 0, 160, 90);
-    item.style.backgroundImage = `url(${canvas.toDataURL()})`;
+  // Thumbnail được addClipToLibrary chụp sẵn từ cùng video tạm dùng để đọc
+  // duration (xem giải thích ở addClipToLibrary) — không tạo thêm <video>
+  // nào ở đây để tránh nhiều decoder cùng giải mã 1 file, gây crash trên
+  // Safari/iOS với video nặng.
+  if (thumbnailUrl) {
+    item.style.backgroundImage = `url(${thumbnailUrl})`;
     item.style.backgroundSize = 'cover';
     item.style.backgroundPosition = 'center';
-    vid.remove();
-  });
-  vid.addEventListener('error', () => vid.remove());
-  vid.src = clip.src;
-  vid.load();
+  }
 
   const dur = clip.duration ? Effects.formatTime(clip.duration) : '--:--';
   item.innerHTML = `
