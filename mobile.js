@@ -14,7 +14,6 @@ const Mobile = (() => {
   let activeSheet  = null;
   let sheetStartY  = 0;
   let sheetCurrentY = 0;
-  let aiCancelled  = false;
 
   // ── Sheet management ───────────────────────────────────────────
   // Ánh xạ mỗi sheet vào đúng bước của stepper (định nghĩa ở app.js) để
@@ -186,6 +185,9 @@ const Mobile = (() => {
   }
 
   // ── Mobile AI Tools ────────────────────────────────────────────
+  // Chỉ còn icon/title riêng cho overlay mobile — dữ liệu tiến trình
+  // (AI_STAGES) và vòng lặp mô phỏng giờ dùng chung AITools.runTool()
+  // (ai-tools.js) với desktop thay vì 2 bản độc lập cho cùng 5 công cụ.
   const AI_ICONS = {
     'auto-cut': '✂️', 'bg-remove': '🟢',
     'color-grade': '🎨', 'upscale': '📺', 'noise': '🔇',
@@ -195,62 +197,32 @@ const Mobile = (() => {
     'color-grade': 'AI Color Grade',
     'upscale': 'AI Upscale 4K', 'noise': 'Noise Reduction',
   };
-  const AI_STAGES = {
-    'auto-cut':    [{ l:'Phân tích âm thanh...', p:15 },{ l:'Phát hiện nhịp điệu...', p:35 },{ l:'Tính điểm cắt tối ưu...', p:58 },{ l:'Áp dụng cắt...', p:82 },{ l:'✅ Hoàn thành!', p:100 }],
-    'bg-remove':   [{ l:'Phân tích khung hình...', p:12 },{ l:'Tách nền SegmentNet...', p:38 },{ l:'Tinh chỉnh biên...', p:65 },{ l:'Render alpha...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
-    'color-grade': [{ l:'Phân tích histogram...', p:18 },{ l:'Áp dụng LUT AI...', p:45 },{ l:'Cân bằng trắng...', p:72 },{ l:'Tối ưu tương phản...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
-    'upscale':     [{ l:'Khởi động Real-ESRGAN...', p:8 },{ l:'Phân tích độ phân giải...', p:22 },{ l:'Upscale 1/3 frames...', p:45 },{ l:'Upscale 2/3 frames...', p:68 },{ l:'Encode 4K UHD...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
-    'noise':       [{ l:'Phân tích tạp âm...', p:20 },{ l:'Xây dựng noise profile...', p:46 },{ l:'DeepFilter AI...', p:72 },{ l:'Tối ưu âm thanh...', p:90 },{ l:'✅ Hoàn thành!', p:100 }],
-  };
 
   function runMobileAI(toolKey) {
-    const stages = AI_STAGES[toolKey];
-    if (!stages) return;
-
-    aiCancelled = false;
+    if (typeof AITools === 'undefined') return;
 
     const overlay = document.getElementById('mob-ai-progress');
     const icon    = document.getElementById('mob-ai-progress-icon');
     const title   = document.getElementById('mob-ai-progress-title');
-    const label   = document.getElementById('mob-ai-progress-label');
-    const fill    = document.getElementById('mob-ai-bar-fill');
-    const pct     = document.getElementById('mob-ai-bar-pct');
 
     if (icon)  icon.textContent  = AI_ICONS[toolKey] || '🤖';
     if (title) title.textContent = AI_TITLES[toolKey] || 'AI đang xử lý...';
-    if (overlay) overlay.classList.add('show');
 
-    // Close sheet
     closeAllSheets();
 
-    let idx = 0;
-    function next() {
-      if (aiCancelled) {
+    AITools.runTool(toolKey, function(key) {
+      if (overlay) overlay.classList.remove('show');
+      if (typeof handleAIToolComplete === 'function') handleAIToolComplete(key);
+    }, {
+      labelId: 'mob-ai-progress-label',
+      fillId:  'mob-ai-bar-fill',
+      pctId:   'mob-ai-bar-pct',
+      onStart: function() { if (overlay) overlay.classList.add('show'); },
+      onCancel: function() {
         if (overlay) overlay.classList.remove('show');
-        showToast('warning','⚠️','Đã huỷ AI processing');
-        return;
-      }
-      if (idx >= stages.length) {
-        setTimeout(() => {
-          if (overlay) overlay.classList.remove('show');
-          const msgs = {
-            'auto-cut':'✂️ Auto Cut hoàn thành!','bg-remove':'🟢 Xóa nền hoàn thành!',
-            'color-grade':'🎨 Color Grade xong!',
-            'upscale':'📺 Video đã upscale 4K!','noise':'🔇 Khử nhiễu xong!',
-          };
-          showToast('success','🤖', msgs[toolKey] || 'AI hoàn thành!', 4000);
-          if (toolKey === 'color-grade') { if(typeof AITools !== 'undefined') AITools.applyColorGrade('cinematic'); }
-        }, 600);
-        return;
-      }
-      const s = stages[idx];
-      if (label) label.textContent = s.l;
-      if (fill)  fill.style.width  = s.p + '%';
-      if (pct)   pct.textContent   = s.p + '%';
-      idx++;
-      setTimeout(next, 500 + Math.random() * 600);
-    }
-    next();
+        showToast('warning', '⚠️', 'Đã huỷ AI processing');
+      },
+    });
   }
 
   function setupMobileAI() {
@@ -277,7 +249,7 @@ const Mobile = (() => {
     });
 
     document.getElementById('mob-ai-cancel')?.addEventListener('click', () => {
-      aiCancelled = true;
+      if (typeof AITools !== 'undefined') AITools.cancelTool();
     });
   }
 
@@ -336,10 +308,11 @@ const Mobile = (() => {
         document.getElementById(`mob-q-${q}`)?.classList.add('active');
       });
     });
-    // Format chips
-    ['mp4','mov','webm','gif'].forEach(f => {
+    // Format chips — chỉ MP4/WebM, 2 định dạng exportVideoReal() thực sự
+    // tạo ra được (MediaRecorder không hỗ trợ mux thật sang MOV/GIF).
+    ['mp4','webm'].forEach(f => {
       document.getElementById(`mob-fmt-${f}`)?.addEventListener('click', () => {
-        ['mp4','mov','webm','gif'].forEach(x => document.getElementById(`mob-fmt-${x}`)?.classList.remove('active'));
+        ['mp4','webm'].forEach(x => document.getElementById(`mob-fmt-${x}`)?.classList.remove('active'));
         document.getElementById(`mob-fmt-${f}`)?.classList.add('active');
       });
     });
@@ -351,55 +324,13 @@ const Mobile = (() => {
       });
     });
 
-    // Export button
+    // Export button — startExport() (app.js) luôn tồn tại vì app.js được
+    // nạp trước mobile.js, nên đường mô phỏng dự phòng trước đây không
+    // bao giờ thực sự chạy tới; bỏ hẳn cho gọn.
     document.getElementById('mob-export-btn')?.addEventListener('click', () => {
-      const filename = document.getElementById('mob-export-filename')?.value || 'HD68_output';
-      const quality  = document.querySelector('.mob-quality-chip[id^="mob-q-"].active')?.textContent || 'FHD';
       closeSheet('export');
-      // Trigger main export with progress
-      if (typeof startExport === 'function') {
-        startExport();
-      } else {
-        simulateMobileExport(filename, quality);
-      }
+      if (typeof startExport === 'function') startExport();
     });
-  }
-
-  function simulateMobileExport(filename, quality) {
-    const stages = [
-      [0, 'Chuẩn bị...'], [20, 'Encode video...'], [45, 'Áp dụng hiệu ứng...'],
-      [68, 'Render AI...'], [85, 'Mux audio...'], [95, 'Optimizing...'],
-      [100, '✅ Xuất hoàn thành!'],
-    ];
-
-    const aiOverlay = document.getElementById('mob-ai-progress');
-    const icon  = document.getElementById('mob-ai-progress-icon');
-    const title = document.getElementById('mob-ai-progress-title');
-    const label = document.getElementById('mob-ai-progress-label');
-    const fill  = document.getElementById('mob-ai-bar-fill');
-    const pct   = document.getElementById('mob-ai-bar-pct');
-
-    if (icon)  icon.textContent  = '📤';
-    if (title) title.textContent = `Xuất ${quality} HD68`;
-    if (aiOverlay) aiOverlay.classList.add('show');
-    aiCancelled = false;
-
-    let idx = 0;
-    function next() {
-      if (aiCancelled || idx >= stages.length) {
-        if (aiOverlay) aiOverlay.classList.remove('show');
-        if (!aiCancelled) showToast('success','🎉',`"${filename}" đã xuất thành công!`, 5000);
-        return;
-      }
-      const [p, l] = stages[idx];
-      if (label) label.textContent = l;
-      if (fill)  fill.style.width  = p + '%';
-      if (pct)   pct.textContent   = p + '%';
-      idx++;
-      if (p < 100) setTimeout(next, 600 + Math.random() * 500);
-      else setTimeout(next, 1200);
-    }
-    next();
   }
 
   // ── Touch double-tap to fullscreen ─────────────────────────────

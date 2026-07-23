@@ -16,51 +16,51 @@ const AITools = (function() {
   ────────────────────────────────────────────────────────── */
   var AI_STAGES = {
     'auto-cut': [
-      { label: 'Phan tich am thanh...', pct: 15 },
-      { label: 'Phat hien nhip dieu...', pct: 30 },
-      { label: 'Tinh toan diem cat toi uu...', pct: 55 },
-      { label: 'Ap dung cat tu dong...', pct: 80 },
-      { label: 'Hoan thien timeline...', pct: 95 },
-      { label: '✅ AI Auto Cut hoan thanh!', pct: 100 },
+      { label: 'Phân tích âm thanh...', pct: 15 },
+      { label: 'Phát hiện nhịp điệu...', pct: 30 },
+      { label: 'Tính toán điểm cắt tối ưu...', pct: 55 },
+      { label: 'Áp dụng cắt tự động...', pct: 80 },
+      { label: 'Hoàn thiện timeline...', pct: 95 },
+      { label: '✅ AI Auto Cut hoàn thành!', pct: 100 },
     ],
     'bg-remove': [
-      { label: 'Phan tich khung hinh...', pct: 10 },
-      { label: 'Tach nen SegmentNet AI...', pct: 35 },
-      { label: 'Tinh chinh vung bien...', pct: 60 },
-      { label: 'Xu ly alpha channel...', pct: 80 },
-      { label: 'Render ket qua...', pct: 95 },
-      { label: '✅ Xoa nen hoan thanh!', pct: 100 },
+      { label: 'Phân tích khung hình...', pct: 10 },
+      { label: 'Tách nền SegmentNet AI...', pct: 35 },
+      { label: 'Tinh chỉnh vùng biên...', pct: 60 },
+      { label: 'Xử lý alpha channel...', pct: 80 },
+      { label: 'Render kết quả...', pct: 95 },
+      { label: '✅ Xóa nền hoàn thành!', pct: 100 },
     ],
     'subtitle': [
-      { label: 'Khoi dong AI Whisper Engine...', pct: 10 },
-      { label: 'Nhan dang giong noi...', pct: 30 },
-      { label: 'Dich thuat & can thoi gian...', pct: 55 },
-      { label: 'Tao file SRT/VTT...', pct: 75 },
-      { label: 'Burn-in phu de...', pct: 90 },
-      { label: '✅ Phu de tu dong hoan thanh!', pct: 100 },
+      { label: 'Khởi động AI Whisper Engine...', pct: 10 },
+      { label: 'Nhận dạng giọng nói...', pct: 30 },
+      { label: 'Dịch thuật & căn thời gian...', pct: 55 },
+      { label: 'Tạo file SRT/VTT...', pct: 75 },
+      { label: 'Burn-in phụ đề...', pct: 90 },
+      { label: '✅ Phụ đề tự động hoàn thành!', pct: 100 },
     ],
     'color-grade': [
-      { label: 'Phan tich histogram mau...', pct: 15 },
-      { label: 'Ap dung AI LUT Engine...', pct: 40 },
-      { label: 'Can bang trang thong minh...', pct: 65 },
-      { label: 'Toi uu do tuong phan...', pct: 85 },
-      { label: '✅ Color Grade hoan thanh!', pct: 100 },
+      { label: 'Phân tích histogram màu...', pct: 15 },
+      { label: 'Áp dụng AI LUT Engine...', pct: 40 },
+      { label: 'Cân bằng trắng thông minh...', pct: 65 },
+      { label: 'Tối ưu độ tương phản...', pct: 85 },
+      { label: '✅ Color Grade hoàn thành!', pct: 100 },
     ],
     'upscale': [
-      { label: 'Khoi dong Real-ESRGAN AI...', pct: 10 },
-      { label: 'Phan tich do phan giai goc...', pct: 25 },
+      { label: 'Khởi động Real-ESRGAN AI...', pct: 10 },
+      { label: 'Phân tích độ phân giải gốc...', pct: 25 },
       { label: 'Upscale frame 1/240...', pct: 45 },
       { label: 'Upscale frame 120/240...', pct: 70 },
       { label: 'Upscale frame 240/240...', pct: 88 },
       { label: 'Encode 4K UHD...', pct: 95 },
-      { label: '✅ Upscale 4K hoan thanh!', pct: 100 },
+      { label: '✅ Upscale 4K hoàn thành!', pct: 100 },
     ],
     'noise': [
-      { label: 'Phan tich tap am...', pct: 20 },
-      { label: 'Xay dung noise profile...', pct: 45 },
-      { label: 'Khu tieng on DeepFilter AI...', pct: 70 },
-      { label: 'Toi uu am thanh...', pct: 90 },
-      { label: '✅ Khu nhieu hoan thanh!', pct: 100 },
+      { label: 'Phân tích tạp âm...', pct: 20 },
+      { label: 'Xây dựng noise profile...', pct: 45 },
+      { label: 'Khử tiếng ồn DeepFilter AI...', pct: 70 },
+      { label: 'Tối ưu âm thanh...', pct: 90 },
+      { label: '✅ Khử nhiễu hoàn thành!', pct: 100 },
     ],
   };
 
@@ -140,12 +140,19 @@ const AITools = (function() {
   /* ──────────────────────────────────────────────────────────
      isRunning flag
   ────────────────────────────────────────────────────────── */
-  var isRunning = false;
+  var isRunning   = false;
+  var toolCancelled = false;
 
   /* ──────────────────────────────────────────────────────────
-     runTool — generic AI progress runner
+     runTool — generic AI progress runner, dùng chung cho cả desktop
+     lẫn mobile (mobile.js truyền opts.labelId/fillId/pctId trỏ vào
+     overlay #mob-ai-progress-* của riêng nó thay vì #ai-progress-*
+     của desktop — cùng 1 bộ AI_STAGES, không còn 2 bản mô phỏng
+     tiến trình độc lập cho cùng 5 công cụ như trước).
+     opts: { labelId, fillId, pctId, onStart, onFinish, onCancel }
   ────────────────────────────────────────────────────────── */
-  function runTool(toolKey, onComplete) {
+  function runTool(toolKey, onComplete, opts) {
+    opts = opts || {};
     if (isRunning) {
       showToast('warning', '!', 'AI dang xu ly, vui long cho...');
       return;
@@ -155,11 +162,12 @@ const AITools = (function() {
     if (!stages) return;
 
     isRunning = true;
+    toolCancelled = false;
 
     var progressArea  = document.getElementById('ai-progress-area');
-    var progressLabel = document.getElementById('ai-progress-label');
-    var progressFill  = document.getElementById('ai-progress-fill');
-    var progressPct   = document.getElementById('ai-progress-pct');
+    var progressLabel = document.getElementById(opts.labelId || 'ai-progress-label');
+    var progressFill  = document.getElementById(opts.fillId  || 'ai-progress-fill');
+    var progressPct   = document.getElementById(opts.pctId   || 'ai-progress-pct');
 
     var btnIdMap = {
       'auto-cut':    'btn-auto-cut',
@@ -187,24 +195,36 @@ const AITools = (function() {
       toolCard.style.outline = '2px solid var(--purple)';
     }
 
+    if (opts.onStart) opts.onStart();
+
     var stageIdx = 0;
 
+    function finishUI() {
+      isRunning = false;
+      if (runBtn) {
+        runBtn.textContent = 'Chay';
+        runBtn.classList.remove('running');
+        runBtn.disabled = false;
+      }
+      document.querySelectorAll('.ai-tool-card').forEach(function(c) {
+        c.style.opacity = '1';
+        c.style.outline = '';
+      });
+      if (toolCard) {
+        toolCard.style.boxShadow = '0 0 20px rgba(6,182,212,0.4)';
+        setTimeout(function() { toolCard.style.boxShadow = ''; }, 3000);
+      }
+    }
+
     function runStage() {
+      if (toolCancelled) {
+        finishUI();
+        if (opts.onCancel) opts.onCancel();
+        return;
+      }
       if (stageIdx >= stages.length) {
-        isRunning = false;
-        if (runBtn) {
-          runBtn.textContent = 'Chay';
-          runBtn.classList.remove('running');
-          runBtn.disabled = false;
-        }
-        document.querySelectorAll('.ai-tool-card').forEach(function(c) {
-          c.style.opacity = '1';
-          c.style.outline = '';
-        });
-        if (toolCard) {
-          toolCard.style.boxShadow = '0 0 20px rgba(6,182,212,0.4)';
-          setTimeout(function() { toolCard.style.boxShadow = ''; }, 3000);
-        }
+        finishUI();
+        if (opts.onFinish) opts.onFinish();
         if (onComplete) onComplete(toolKey);
         return;
       }
@@ -219,6 +239,12 @@ const AITools = (function() {
     }
 
     runStage();
+  }
+
+  /* Huỷ lần chạy runTool() đang xử lý (5 công cụ mô phỏng — không phải
+     generateSubtitles()/splitVideoIntoClips(), vốn có cơ chế huỷ riêng). */
+  function cancelTool() {
+    toolCancelled = true;
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -1507,6 +1533,7 @@ const AITools = (function() {
   ────────────────────────────────────────────────────────── */
   return {
     runTool:           runTool,
+    cancelTool:        cancelTool,
     generateSubtitles: generateSubtitles,
     stopRecognition:   stopRecognition,
     addSubtitle:       addSubtitle,

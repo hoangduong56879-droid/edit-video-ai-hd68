@@ -1688,19 +1688,24 @@ function setupAIButtons() {
         return;
       }
 
-      AITools.runTool(toolKey, (key) => {
-        const messages = {
-          'auto-cut':    '✂️ Auto Cut: Timeline đã được tối ưu theo nhịp nhạc!',
-          'bg-remove':   '🟢 Xóa nền thành công! Nền đã được xóa AI.',
-          'color-grade': '🎨 Color Grade AI đã áp dụng tone màu Cinematic!',
-          'upscale':     '📺 Video đã được nâng cấp lên 4K UHD thành công!',
-          'noise':       '🔇 Tiếng ồn đã được khử hoàn toàn!',
-        };
-        showToast('success', '🤖', messages[key] || 'AI xử lý hoàn thành!', 4000);
-        if (key === 'color-grade') AITools.applyColorGrade('cinematic');
-      });
+      AITools.runTool(toolKey, handleAIToolComplete);
     });
   });
+}
+
+/* Toast + hành động sau khi 1 trong 5 công cụ AI mô phỏng (runTool) chạy
+   xong — dùng chung cho cả nút desktop lẫn mobile (mobile.js gọi lại
+   đúng hàm này) để không lặp lại 2 bộ message/hành động riêng. */
+function handleAIToolComplete(key) {
+  const messages = {
+    'auto-cut':    '✂️ Auto Cut: Timeline đã được tối ưu theo nhịp nhạc!',
+    'bg-remove':   '🟢 Xóa nền thành công! Nền đã được xóa AI.',
+    'color-grade': '🎨 Color Grade AI đã áp dụng tone màu Cinematic!',
+    'upscale':     '📺 Video đã được nâng cấp lên 4K UHD thành công!',
+    'noise':       '🔇 Tiếng ồn đã được khử hoàn toàn!',
+  };
+  showToast('success', '🤖', messages[key] || 'AI xử lý hoàn thành!', 4000);
+  if (key === 'color-grade') AITools.applyColorGrade('cinematic');
 }
 
 // ──────────────────────────────────────────────
