@@ -163,6 +163,7 @@ function goToStep(n) {
   State.currentStep = n;
   updateStepperUI();
 
+  const step1   = document.getElementById('step-screen-1');
   const editor  = document.getElementById('panel-editor');
   const color   = document.getElementById('panel-color');
   const audio   = document.getElementById('panel-audio');
@@ -170,12 +171,11 @@ function goToStep(n) {
   const done    = document.getElementById('step-screen-4');
   const subnav  = document.getElementById('step2-subnav');
 
-  [editor, color, audio, exportP, done].forEach(el => el && el.classList.add('hidden'));
+  [step1, editor, color, audio, exportP, done].forEach(el => el && el.classList.add('hidden'));
 
   if (n === 1) {
     subnav?.classList.add('hidden');
-    editor?.classList.remove('hidden');
-    switchToPanelTab('media');
+    step1?.classList.remove('hidden');
   } else if (n === 2) {
     subnav?.classList.remove('hidden');
     const activeBtn = subnav?.querySelector('.step2-subnav-btn.active') || subnav?.querySelector('.step2-subnav-btn');

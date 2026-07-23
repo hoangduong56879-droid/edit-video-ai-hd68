@@ -127,17 +127,49 @@
       <button class="step2-subnav-btn" data-panel="audio" id="s2tab-audio">Âm thanh</button>
     </nav>
 
+    <!-- ===== BƯỚC 1: TẢI LÊN ===== -->
+    <main class="app-body step1-screen" id="step-screen-1">
+      <div class="step1-content">
+        <div class="media-upload-zone" id="media-upload-zone">
+          <div class="upload-icon">
+            <svg viewBox="0 0 48 48" fill="none" width="48">
+              <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4z" fill="rgba(124,58,237,0.15)" stroke="rgba(124,58,237,0.5)" stroke-width="1.5"/>
+              <path d="M16 26l8-8 8 8M24 18v16" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <p class="upload-title">Kéo thả video vào đây</p>
+          <p class="upload-sub">hoặc</p>
+          <label class="btn-upload" for="file-input-video">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 11 0 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/><path d="M14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>
+            Chọn video
+          </label>
+          <input type="file" id="file-input-video" accept="video/*" multiple style="display:none"/>
+          <p class="upload-formats">MP4, MOV, AVI, MKV, WebM</p>
+        </div>
+
+        <div class="media-library" id="media-library">
+          <div class="media-library-header">
+            <span>Thư viện media <span id="media-count" style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:400;"></span></span>
+            <div style="display:flex;gap:5px;align-items:center;">
+              <button class="btn-clear-media" id="btn-clear-media" title="Xóa tất cả media">🗑 Xóa tất cả</button>
+              <button class="btn-add-media" id="btn-add-media">+ Thêm</button>
+            </div>
+          </div>
+
+          <div class="media-grid" id="media-grid">
+            <!-- Media items injected here -->
+          </div>
+        </div>
+      </div>
+    </main>
+
     <!-- ===== EDITOR TAB ===== -->
-    <main class="app-body" id="panel-editor">
+    <main class="app-body hidden" id="panel-editor">
       <!-- LEFT: Media & AI Panel -->
       <aside class="panel-left">
         <!-- Tab switcher -->
         <div class="panel-tabs">
-          <button class="ptab active" data-ptab="media" id="ptab-media">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><rect x="2" y="2" width="7" height="7" rx="1"/><rect x="11" y="2" width="7" height="7" rx="1"/><rect x="2" y="11" width="7" height="7" rx="1"/><rect x="11" y="11" width="7" height="7" rx="1"/></svg>
-            Media
-          </button>
-          <button class="ptab" data-ptab="ai" id="ptab-ai">
+          <button class="ptab active" data-ptab="ai" id="ptab-ai">
             <svg viewBox="0 0 20 20" fill="none" width="14"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             AI Tools
           </button>
@@ -151,56 +183,8 @@
           </button>
         </div>
 
-        <!-- MEDIA Panel -->
-        <div class="panel-content active" id="pcontent-media">
-          <div class="media-upload-zone" id="media-upload-zone">
-            <div class="upload-icon">
-              <svg viewBox="0 0 48 48" fill="none" width="48">
-                <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4z" fill="rgba(124,58,237,0.15)" stroke="rgba(124,58,237,0.5)" stroke-width="1.5"/>
-                <path d="M16 26l8-8 8 8M24 18v16" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <p class="upload-title">Kéo thả video vào đây</p>
-            <p class="upload-sub">hoặc</p>
-            <label class="btn-upload" for="file-input-video">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="16"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 11 0 4v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/><path d="M14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/></svg>
-              Chọn video
-            </label>
-            <input type="file" id="file-input-video" accept="video/*" multiple style="display:none"/>
-            <p class="upload-formats">MP4, MOV, AVI, MKV, WebM</p>
-          </div>
-
-          <div class="media-library" id="media-library">
-            <div class="media-library-header">
-              <span>Thư viện media <span id="media-count" style="font-size:10px;color:rgba(255,255,255,0.35);font-weight:400;"></span></span>
-              <div style="display:flex;gap:5px;align-items:center;">
-                <button class="btn-clear-media" id="btn-clear-media" title="Xóa tất cả media">🗑 Xóa tất cả</button>
-                <button class="btn-add-media" id="btn-add-media">+ Thêm</button>
-              </div>
-            </div>
-
-            <div class="media-grid" id="media-grid">
-              <!-- Media items injected here -->
-            </div>
-          </div>
-
-          <!-- Stock Media -->
-          <div class="stock-section">
-            <div class="stock-header">
-              <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 2a6 6 0 11-3.93 10.61l-.04-.04A6 6 0 0110 4z"/></svg>
-              Stock Media
-            </div>
-            <div class="stock-grid">
-              <div class="stock-item" style="--c1:#7c3aed;--c2:#06b6d4">Cinematic</div>
-              <div class="stock-item" style="--c1:#f59e0b;--c2:#ef4444">Sunset</div>
-              <div class="stock-item" style="--c1:#10b981;--c2:#06b6d4">Nature</div>
-              <div class="stock-item" style="--c1:#ec4899;--c2:#a78bfa">Neon City</div>
-            </div>
-          </div>
-        </div>
-
         <!-- AI TOOLS Panel -->
-        <div class="panel-content" id="pcontent-ai">
+        <div class="panel-content active" id="pcontent-ai">
           <div class="ai-header">
             <div class="ai-badge">
               <span class="ai-dot"></span>
