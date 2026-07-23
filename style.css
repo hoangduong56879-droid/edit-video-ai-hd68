@@ -1339,12 +1339,25 @@ input[type="range"] { -webkit-appearance: none; appearance: none; }
     padding: 0 12px;
     justify-content: space-between;
   }
-  .nav-center { display: none; }        /* hide desktop tabs */
+  /* Giữ hiện stepper (thu gọn, chỉ số + vạch nối, ẩn chữ) thay vì ẩn hẳn
+     .nav-center như trước — nếu không mobile hoàn toàn không thấy luồng
+     4 bước, chỉ desktop mới thấy. */
+  .nav-center { display: flex; }
+  .hd68-stepper { gap: 2px; }
+  .stepper-node { padding: 2px 3px; gap: 0; }
+  .stepper-dot { width: 20px; height: 20px; font-size: 10px; }
+  .stepper-text { display: none; }
+  .stepper-line { width: 10px; }
   .nav-project-name { display: none; }
   .nav-right { gap: 6px; min-width: auto; }
   .btn-save { display: none; }
+  /* Sub-nav nội bộ bước 2 (Chỉnh sửa/Màu sắc/Âm thanh) chỉ dành cho desktop
+     — trên mobile các mục này đã có sẵn trong thanh điều hướng dưới cùng
+     (Hiệu ứng/Âm thanh), hiện thêm ở đây sẽ trùng lặp và chiếm chỗ. */
+  .step2-subnav { display: none !important; }
   .btn-export-nav { padding: 6px 12px; font-size: 11px; }
   .nav-logo-text { font-size: 13px; }
+  .nav-left { min-width: auto; gap: 8px; }
 
   /* ─── App body: single column ─── */
   #app {

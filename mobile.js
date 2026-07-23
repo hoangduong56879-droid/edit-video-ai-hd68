@@ -17,7 +17,26 @@ const Mobile = (() => {
   let aiCancelled  = false;
 
   // ── Sheet management ───────────────────────────────────────────
+  // Ánh xạ mỗi sheet vào đúng bước của stepper (định nghĩa ở app.js) để
+  // mobile cũng bị khoá/mở khớp với desktop thay vì hoàn toàn không biết
+  // gì về luồng 4 bước. "media" cố tình không có trong danh sách này —
+  // mở lại thư viện media giữa chừng lúc đang chỉnh sửa (bước 2/3) không
+  // nên bị coi là quay lại bước 1. Chỉ đồng bộ State.currentStep + thanh
+  // stepper — KHÔNG gọi goToStep() đầy đủ ở đây để tránh đổi panel-editor/
+  // -export đang hiển thị phía sau sheet (giữ nguyên hành vi hiện có).
+  const SHEET_STEP = { ai: 2, effects: 2, audio: 2, export: 3 };
+
   function openSheet(name) {
+    const step = SHEET_STEP[name];
+    if (step && typeof canGoToStep === 'function' && !canGoToStep(step)) {
+      if (typeof showToast === 'function') showToast('warning', '⚠️', 'Vui lòng thêm video trước!', 2500);
+      return;
+    }
+    if (step && typeof State !== 'undefined') {
+      State.currentStep = step;
+      if (typeof updateStepperUI === 'function') updateStepperUI();
+    }
+
     closeAllSheets();
     const sheet = document.getElementById(`mob-sheet-${name}`);
     if (!sheet) return;
@@ -457,8 +476,18 @@ const Mobile = (() => {
   }
 
   // ── Init ───────────────────────────────────────────────────────
+  // navSetupDone chặn init() gắn listener nhiều lần: trước đây mỗi lần
+  // resize (xoay màn hình, bàn phím ảo bật/tắt cũng kích hoạt resize trên
+  // nhiều trình duyệt mobile) mà vẫn đang ở kích thước mobile sẽ gọi lại
+  // toàn bộ setup*(), gắn trùng listener lên cùng 1 nút — khiến mỗi lần
+  // bấm mở sheet thực chất chạy toggleSheet() 2 lần, tự mở rồi tự đóng
+  // ngay lập tức.
+  let navSetupDone = false;
+
   function init() {
     if (!isMobile()) return; // Only initialize on mobile
+    if (navSetupDone) return;
+    navSetupDone = true;
 
     setupNavigation();
     setupMobileFileInput();
