@@ -246,9 +246,25 @@ const AITools = (function() {
     });
   }
 
-  /* Giải mã audio track của video → Float32Array mono 16kHz cho Whisper */
-  async function _extractAudioForWhisper(video) {
-    var resp = await fetch(video.src);
+  /* Giải mã audio track của video → Float32Array mono 16kHz cho Whisper.
+     Thử decode nhanh qua decodeAudioData() trước (tức thì, hoạt động tốt
+     trên Chrome/Edge/Firefox). Safari (iOS/macOS) thường báo lỗi
+     "Decoding failed" cho API này với audio track trích từ container
+     video — dù chính video đó vẫn phát bình thường qua thẻ <video> — nên
+     khi decode nhanh thất bại, chuyển sang ghi lại PCM theo thời gian
+     thực bằng cách phát video (câm tiếng) qua MediaElementAudioSourceNode,
+     con đường luôn tương thích vì dùng đúng pipeline giải mã của <video>. */
+  async function _extractAudioForWhisper(video, onProgress) {
+    try {
+      return await _decodeAudioFast(video.src);
+    } catch (fastErr) {
+      console.warn('[HD68 Sub] decodeAudioData that bai, chuyen sang ghi am thoi gian thuc (Safari-safe):', fastErr);
+      return await _decodeAudioRealtime(video.src, onProgress);
+    }
+  }
+
+  async function _decodeAudioFast(src) {
+    var resp = await fetch(src);
     var buf  = await resp.arrayBuffer();
 
     var DecodeCtx = window.AudioContext || window.webkitAudioContext;
@@ -264,12 +280,107 @@ const AITools = (function() {
 
     var targetRate = 16000;
     var offline = new OfflineAudioContext(1, Math.ceil(decoded.duration * targetRate), targetRate);
-    var src = offline.createBufferSource();
-    src.buffer = decoded;
-    src.connect(offline.destination);
-    src.start(0);
+    var srcNode = offline.createBufferSource();
+    srcNode.buffer = decoded;
+    srcNode.connect(offline.destination);
+    srcNode.start(0);
     var rendered = await offline.startRendering();
     return rendered.getChannelData(0);
+  }
+
+  function _decodeAudioRealtime(src, onProgress) {
+    return new Promise(function(resolve, reject) {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      var ctx = new Ctx();
+      var vid = document.createElement('video');
+      vid.playsInline = true;
+      vid.muted = true;
+      vid.preload = 'auto';
+      vid.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;';
+      document.body.appendChild(vid);
+
+      var chunks  = [];
+      var srcNode, proc, gain;
+      var cleaned = false;
+
+      function cleanup() {
+        if (cleaned) return;
+        cleaned = true;
+        try { proc    && proc.disconnect(); }    catch(e) {}
+        try { srcNode && srcNode.disconnect(); } catch(e) {}
+        try { gain    && gain.disconnect(); }    catch(e) {}
+        try { ctx.close(); } catch(e) {}
+        vid.remove();
+      }
+
+      vid.addEventListener('error', function() {
+        cleanup();
+        reject(new Error('Khong doc duoc video de trich xuat am thanh (thu lai voi video khac)'));
+      });
+
+      vid.addEventListener('loadedmetadata', function() {
+        try {
+          srcNode = ctx.createMediaElementSource(vid);
+          proc    = ctx.createScriptProcessor(4096, 1, 1);
+          gain    = ctx.createGain();
+          gain.gain.value = 0; // câm khi phát để ghi ngầm, không phát ra loa
+
+          srcNode.connect(proc);
+          proc.connect(gain);
+          gain.connect(ctx.destination);
+
+          proc.onaudioprocess = function(e) {
+            chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+          };
+
+          vid.addEventListener('timeupdate', function() {
+            if (onProgress && vid.duration) onProgress(vid.currentTime / vid.duration);
+          });
+
+          vid.addEventListener('ended', function() {
+            cleanup();
+            resolve(_downsampleTo16k(chunks, ctx.sampleRate));
+          }, { once: true });
+
+          vid.currentTime = 0;
+          vid.play().catch(function(playErr) {
+            cleanup();
+            reject(playErr);
+          });
+        } catch (setupErr) {
+          cleanup();
+          reject(setupErr);
+        }
+      }, { once: true });
+
+      vid.src = src;
+      vid.load();
+    });
+  }
+
+  /* Gộp các đoạn PCM ghi theo thời gian thực + hạ mẫu (nội suy tuyến tính)
+     từ sample rate của thiết bị (thường 44100/48000Hz) xuống 16kHz cho Whisper. */
+  function _downsampleTo16k(chunks, srcRate) {
+    var total = 0;
+    chunks.forEach(function(c) { total += c.length; });
+    var merged = new Float32Array(total);
+    var offset = 0;
+    chunks.forEach(function(c) { merged.set(c, offset); offset += c.length; });
+
+    var targetRate = 16000;
+    if (srcRate === targetRate) return merged;
+
+    var ratio  = srcRate / targetRate;
+    var outLen = Math.floor(merged.length / ratio);
+    var out    = new Float32Array(outLen);
+    for (var i = 0; i < outLen; i++) {
+      var pos  = i * ratio;
+      var idx0 = Math.floor(pos);
+      var idx1 = Math.min(idx0 + 1, merged.length - 1);
+      var frac = pos - idx0;
+      out[i] = merged[idx0] * (1 - frac) + merged[idx1] * frac;
+    }
+    return out;
   }
 
   /* Gộp các từ (word-level timestamps) thành cụm phụ đề ngắn kiểu CapCut —
@@ -403,7 +514,11 @@ const AITools = (function() {
     return (async function() {
       try {
         setProgress(5, '🎧 Đang đọc audio từ video...');
-        var audioData = await _extractAudioForWhisper(video);
+        var audioData = await _extractAudioForWhisper(video, function(frac) {
+          // Chỉ realtime-capture fallback gọi callback này (decode nhanh
+          // xong ngay nên không cần); chiếm dải 5-15% của thanh tiến trình.
+          setProgress(5 + frac * 10, '🎧 Đang ghi âm thanh từ video... ' + Math.round(frac * 100) + '%');
+        });
         if (_subAborted || runId !== _subRunId) return finish(), subtitleList;
 
         if (!window.HD68LoadWhisper) await _waitForWhisperReady(8000);
